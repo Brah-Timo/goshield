@@ -1,9 +1,15 @@
 """Central configuration loaded from environment variables."""
-from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="GOSHIELD_AI_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        protected_namespaces=("settings_",),
+    )
+
     # Service
     service_name: str = "ai-service-py"
     version: str = "1.0.0"
@@ -23,11 +29,6 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: list[str] = ["*"]
-
-    class Config:
-        env_prefix = "GOSHIELD_AI_"
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 
 settings = Settings()
