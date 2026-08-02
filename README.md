@@ -4,6 +4,13 @@
 
 ---
 
+
+<img width="500" height="499" alt="image" src="https://github.com/user-attachments/assets/ce0673a4-0ece-49ee-97d3-99e888b4fce0" />
+
+
+
+
+
 ## Architecture
 
 ```
