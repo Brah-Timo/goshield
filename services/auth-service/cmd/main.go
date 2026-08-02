@@ -126,10 +126,17 @@ func run() error {
 
 	app.Use(recover.New())
 	app.Use(fiberreqid.New())
+	// AllowOrigins cannot be "*" when AllowCredentials is true (browsers reject it).
+	// In development we explicitly list the Vite dev server. In production the
+	// GOSHIELD_CORS_ORIGINS env var / config should list the real frontend origin.
+	corsOrigins := "http://localhost:5173,http://localhost:3000"
+	if cfg.Service.Environment != "development" {
+		corsOrigins = "https://app.goshield.io" // override in prod config
+	}
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "*",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET,POST,PATCH,DELETE,OPTIONS",
+		AllowOrigins:     corsOrigins,
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Request-ID",
+		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowCredentials: true,
 	}))
 
@@ -142,9 +149,12 @@ func run() error {
 		return c.JSON(fiber.Map{"status": "ready"})
 	})
 
-	// API routes
-	api := app.Group("/api/v1")
+	// API routes — primary prefix is /auth/v1 (matches Vite proxy + api-gateway).
+	// A /api/v1 alias is kept for backwards-compat / direct service access.
+	api := app.Group("/auth/v1")
 	h.RegisterRoutes(api, jwtMgr)
+	apiAlias := app.Group("/api/v1")
+	h.RegisterRoutes(apiAlias, jwtMgr)
 
 	// ── Graceful Shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
