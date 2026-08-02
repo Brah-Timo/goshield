@@ -1,6 +1,6 @@
 """Pydantic schemas for inference request and response."""
 from __future__ import annotations
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Optional
 
 
@@ -36,6 +36,8 @@ class RiskFactor(BaseModel):
 
 class InferenceResponse(BaseModel):
     """Full fraud analysis result with SHAP explanation."""
+    model_config = ConfigDict(protected_namespaces=())
+
     claim_id: str
     fraud_score: float = Field(..., ge=0.0, le=1.0)
     risk_level: str              # LOW | MEDIUM | HIGH | CRITICAL
@@ -48,6 +50,8 @@ class InferenceResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     status: str
     service: str
     version: str
