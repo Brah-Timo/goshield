@@ -216,3 +216,22 @@ CREATE UNIQUE INDEX ON daily_fraud_stats(day, company_id);
 
 -- +goose StatementEnd
 
+
+-- +goose Down
+-- +goose StatementBegin
+
+DROP MATERIALIZED VIEW IF EXISTS daily_fraud_stats;
+DROP TABLE IF EXISTS rules;
+DROP TABLE IF EXISTS api_keys;
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS claims;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS companies;
+DROP TYPE IF EXISTS claim_type;
+DROP TYPE IF EXISTS claim_status;
+DROP TYPE IF EXISTS user_role;
+DROP FUNCTION IF EXISTS update_updated_at();
+DROP EXTENSION IF EXISTS "pg_trgm";
+DROP EXTENSION IF EXISTS "uuid-ossp";
+
+-- +goose StatementEnd

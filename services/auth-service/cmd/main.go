@@ -38,7 +38,20 @@ func run() error {
 	// ── Config ────────────────────────────────────────────────────────────────
 	cfgPath := os.Getenv("CONFIG_PATH")
 	if cfgPath == "" {
-		cfgPath = "config/config.yaml"
+		// Support running from repo root (`go run ./services/auth-service/cmd/...`)
+		// as well as from the service directory.
+		for _, p := range []string{
+			"config/config.yaml",
+			"services/auth-service/config/config.yaml",
+		} {
+			if _, e := os.Stat(p); e == nil {
+				cfgPath = p
+				break
+			}
+		}
+		if cfgPath == "" {
+			cfgPath = "config/config.yaml"
+		}
 	}
 	cfg, err := config.Load(cfgPath)
 	if err != nil {

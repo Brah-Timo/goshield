@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -70,7 +71,9 @@ func (h *WSHandler) serveWS(c *websocket.Conn) {
 	userCtx := c.Locals("userCtx")
 	companyID := ""
 	if userCtx != nil {
-		if ctx, ok := userCtx.(interface{ Value(any) any }); ok {
+		// The upgrade middleware stores a context.Context via c.Locals("userCtx", ctx).
+		// After the WebSocket upgrade the value arrives here still typed as context.Context.
+		if ctx, ok := userCtx.(context.Context); ok {
 			companyID = middleware.CompanyIDFromContext(ctx)
 		}
 	}

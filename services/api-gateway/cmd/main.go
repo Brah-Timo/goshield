@@ -41,8 +41,11 @@ func main() {
 	// ── Config ──────────────────────────────────────────────────────────────
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
+	// Support container mount (/config), service-dir run (./config),
+	// and repo-root run (go run ./services/api-gateway/cmd/...).
 	viper.AddConfigPath("/config")
 	viper.AddConfigPath("./config")
+	viper.AddConfigPath("services/api-gateway/config")
 	viper.SetEnvPrefix("GOSHIELD")
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {

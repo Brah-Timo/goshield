@@ -33,7 +33,21 @@ func main() {
 func run() error {
 	cfgPath := os.Getenv("CONFIG_PATH")
 	if cfgPath == "" {
-		cfgPath = "config/config.yaml"
+		// When run via `go run ./services/ai-service-go/cmd/...` from the repo root,
+		// the working directory is the repo root, not the service directory.
+		// Try both locations so the service works from either CWD.
+		for _, p := range []string{
+			"config/config.yaml",
+			"services/ai-service-go/config/config.yaml",
+		} {
+			if _, e := os.Stat(p); e == nil {
+				cfgPath = p
+				break
+			}
+		}
+		if cfgPath == "" {
+			cfgPath = "config/config.yaml" // let config.Load produce a clear error
+		}
 	}
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
