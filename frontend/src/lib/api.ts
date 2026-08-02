@@ -39,12 +39,12 @@ api.interceptors.response.use(
       original._retry = true
       refreshing = true
       try {
-        const { data } = await axios.post<{ access_token: string }>(
+        const { data } = await axios.post<{ tokens: { accessToken: string } }>(
           `${BASE_URL}/auth/v1/refresh`,
           {},
           { withCredentials: true }
         )
-        setAccessToken(data.access_token)
+        setAccessToken(data.tokens.accessToken)
         refreshQueue.forEach((cb) => cb(data.access_token))
         refreshQueue = []
         original.headers.Authorization = `Bearer ${data.access_token}`
