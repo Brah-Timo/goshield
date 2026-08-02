@@ -12,11 +12,34 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/auth': { target: 'http://localhost:8080', changeOrigin: true },
-      '/claims': { target: 'http://localhost:8080', changeOrigin: true },
-      '/notifications': { target: 'http://localhost:8080', changeOrigin: true },
-      '/ai': { target: 'http://localhost:8080', changeOrigin: true },
-      '/ws': { target: 'ws://localhost:8080', ws: true, changeOrigin: true },
+      // Route each prefix directly to its own microservice.
+      // This lets the frontend work in local dev without the api-gateway
+      // (port 8080) running. Start each service individually instead:
+      //   auth-service        → :8081
+      //   claim-service       → :8082
+      //   notification-service→ :8083  (HTTP + WebSocket)
+      //   ai-service-py       → :8090  (or ai-service-go on :8093)
+      '/auth': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
+      '/claims': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/notifications': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://localhost:8083',
+        ws: true,
+        changeOrigin: true,
+      },
+      '/ai': {
+        target: 'http://localhost:8093',
+        changeOrigin: true,
+      },
     },
   },
   build: {
