@@ -1,0 +1,38 @@
+# GoShield RBAC Policies (Casbin CSV format)
+# Format: p, role, resource, action
+# OR:     g, user/role, parent_role
+
+# ── ADMIN permissions (full access) ──────────────────────────────────────────
+p, ADMIN, claims, read
+p, ADMIN, claims, write
+p, ADMIN, claims, delete
+p, ADMIN, claims, review
+p, ADMIN, users, read
+p, ADMIN, users, write
+p, ADMIN, users, delete
+p, ADMIN, rules, read
+p, ADMIN, rules, write
+p, ADMIN, rules, delete
+p, ADMIN, stats, read
+p, ADMIN, api_keys, read
+p, ADMIN, api_keys, write
+p, ADMIN, api_keys, delete
+p, ADMIN, audit_logs, read
+
+# ── ANALYST permissions ───────────────────────────────────────────────────────
+p, ANALYST, claims, read
+p, ANALYST, claims, write
+p, ANALYST, claims, review
+p, ANALYST, stats, read
+p, ANALYST, rules, read
+p, ANALYST, audit_logs, read
+
+# ── VIEWER permissions ────────────────────────────────────────────────────────
+p, VIEWER, claims, read
+p, VIEWER, stats, read
+
+# ── Role hierarchy ────────────────────────────────────────────────────────────
+# ADMIN inherits all ANALYST permissions
+g, ADMIN, ANALYST
+# ANALYST inherits all VIEWER permissions  
+g, ANALYST, VIEWER

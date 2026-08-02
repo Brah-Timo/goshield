@@ -1,0 +1,19 @@
+{
+  "__inputs": [{ "name": "DS_PROMETHEUS", "label": "Prometheus", "type": "datasource", "pluginId": "prometheus" }],
+  "title": "GoShield — Fraud Analytics",
+  "uid": "goshield-fraud",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "1m",
+  "panels": [
+    { "id": 1, "title": "Fraud Detection Rate (flagged/total)", "type": "gauge", "gridPos": { "x": 0, "y": 0, "w": 6, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "steps": [{"color":"green","value":0},{"color":"yellow","value":0.05},{"color":"red","value":0.15}] } } },
+      "targets": [{ "expr": "sum(rate(claims_flagged_total{namespace=\"goshield\"}[1h])) / sum(rate(claims_analyzed_total{namespace=\"goshield\"}[1h]))", "datasource": { "uid": "${DS_PROMETHEUS}" } }] },
+    { "id": 2, "title": "Average Fraud Score", "type": "timeseries", "gridPos": { "x": 6, "y": 0, "w": 18, "h": 8 },
+      "targets": [{ "expr": "avg(goshield_claim_fraud_score{namespace=\"goshield\"})", "legendFormat": "avg fraud score", "datasource": { "uid": "${DS_PROMETHEUS}" } }] },
+    { "id": 3, "title": "Claims by Risk Level", "type": "piechart", "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [{ "expr": "sum(goshield_claims_total{namespace=\"goshield\"}) by (risk_level)", "legendFormat": "{{risk_level}}", "datasource": { "uid": "${DS_PROMETHEUS}" } }] },
+    { "id": 4, "title": "AI Inference Latency P95 (ms)", "type": "timeseries", "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(goshield_ai_inference_duration_seconds_bucket{namespace=\"goshield\"}[5m])) by (le)) * 1000", "datasource": { "uid": "${DS_PROMETHEUS}" } }] }
+  ]
+}

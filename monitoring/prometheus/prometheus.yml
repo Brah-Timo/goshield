@@ -1,0 +1,52 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: goshield-local
+    environment: development
+
+rule_files:
+  - "alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]
+
+  - job_name: api-gateway
+    static_configs:
+      - targets: [api-gateway:8080]
+    metrics_path: /metrics
+
+  - job_name: auth-service
+    static_configs:
+      - targets: [auth-service:8081]
+    metrics_path: /metrics
+
+  - job_name: claim-service
+    static_configs:
+      - targets: [claim-service:8082]
+    metrics_path: /metrics
+
+  - job_name: ai-service-py
+    static_configs:
+      - targets: [ai-service-py:8083]
+    metrics_path: /metrics
+
+  - job_name: notification-service
+    static_configs:
+      - targets: [notification:8084]
+    metrics_path: /metrics
+
+  - job_name: postgres
+    static_configs:
+      - targets: [postgres-exporter:9187]
+
+  - job_name: redis
+    static_configs:
+      - targets: [redis-exporter:9121]

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service-py
+  namespace: goshield
+  labels:
+    app: ai-service-py
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-service-py
+  template:
+    metadata:
+      labels:
+        app: ai-service-py
+    spec:
+      containers:
+        - name: ai-service-py
+          image: goshield/ai-service-py:latest
+          ports:
+            - containerPort: 8090
+          env:
+            - name: GOSHIELD_AI_MODEL_PATH
+              value: /models/fraud_model.joblib
+            - name: GOSHIELD_AI_PREPROCESSOR_PATH
+              value: /models/preprocessor.joblib
+          volumeMounts:
+            - name: models
+              mountPath: /models
+          resources:
+            requests: { cpu: 500m, memory: 1Gi }
+            limits:   { cpu: 2000m, memory: 2Gi }
+          livenessProbe:
+            httpGet: { path: /api/v1/health, port: 8090 }
+            initialDelaySeconds: 30
+          readinessProbe:
+            httpGet: { path: /api/v1/readyz, port: 8090 }
+            initialDelaySeconds: 15
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: models-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-py-svc
+  namespace: goshield
+spec:
+  selector: { app: ai-service-py }
+  ports:
+    - port: 8090
+      targetPort: 8090
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: models-pvc
+  namespace: goshield
+spec:
+  accessModes: [ReadWriteMany]
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: azurefile

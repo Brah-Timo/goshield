@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package notification;
+
+option go_package = "github.com/goshield/gen/notification/v1;notificationv1";
+
+service NotificationService {
+  rpc SendFraudAlert(FraudAlert) returns (Ack);
+  rpc SendEmail(EmailRequest) returns (Ack);
+  rpc BroadcastEvent(BroadcastRequest) returns (Ack);
+}
+
+message FraudAlert {
+  string claim_id = 1;
+  double fraud_score = 2;
+  string analyst_email = 3;
+  string company_id = 4;
+  double amount = 5;
+  string reason = 6;
+}
+
+message EmailRequest {
+  string to = 1;
+  string subject = 2;
+  string body = 3;
+  bool is_html = 4;
+}
+
+message BroadcastRequest {
+  string event_type = 1;   // CLAIM_FLAGGED, CLAIM_APPROVED, etc.
+  string payload = 2;      // JSON string
+  string company_id = 3;   // scope broadcast to tenant
+}
+
+message Ack {
+  bool success = 1;
+  string message = 2;
+}

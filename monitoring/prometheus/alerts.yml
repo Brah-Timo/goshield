@@ -1,0 +1,49 @@
+groups:
+  - name: goshield.api
+    rules:
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency on {{ $labels.service }}"
+          description: "p95 latency is {{ $value | humanizeDuration }} (threshold: 200ms)"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.01
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 1%)"
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been down for more than 1 minute"
+
+  - name: goshield.fraud
+    rules:
+      - alert: HighFraudScore
+        expr: goshield_fraud_score_analyzed > 0.95
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Very high fraud score detected"
+          description: "Claim {{ $labels.claim_id }} has fraud score {{ $value }}"
+
+      - alert: KafkaLag
+        expr: kafka_consumer_group_lag > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "Consumer group {{ $labels.group }} lag: {{ $value }}"

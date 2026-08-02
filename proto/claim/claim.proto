@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package claim;
+
+option go_package = "github.com/goshield/gen/claim/v1;claimv1";
+
+// ClaimService handles AI fraud analysis requests.
+service ClaimService {
+  rpc AnalyzeClaim(ClaimRequest) returns (ClaimResponse);
+  rpc GetAnalysisStatus(StatusRequest) returns (StatusResponse);
+}
+
+message ClaimRequest {
+  string id = 1;
+  double amount = 2;
+  string doc_url = 3;
+  string claim_type = 4;
+  string description = 5;
+  string policy_number = 6;
+  string user_id = 7;
+  string company_id = 8;
+  int32 account_age_days = 9;
+  int32 prior_claims_count = 10;
+  string incident_date = 11;
+}
+
+message ClaimResponse {
+  string id = 1;
+  double fraud_score = 2;           // 0.0 – 1.0
+  string reason = 3;                // human-readable explanation
+  repeated string risk_factors = 4; // ["High amount","New account",…]
+  repeated SimilarClaim similar_claims = 5;
+  bool success = 6;
+  string error_message = 7;
+}
+
+message SimilarClaim {
+  string id = 1;
+  double fraud_score = 2;
+  double amount = 3;
+  string status = 4;
+}
+
+message StatusRequest {
+  string claim_id = 1;
+}
+
+message StatusResponse {
+  string claim_id = 1;
+  string status = 2;
+  bool analyzed = 3;
+}

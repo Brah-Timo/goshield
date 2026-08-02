@@ -1,0 +1,55 @@
+service:
+  name: claim-service
+  port: 8082
+  environment: development
+  version: "1.0.0"
+
+database:
+  host: ${GOSHIELD_DATABASE_HOST:localhost}
+  port: 5432
+  user: ${GOSHIELD_DATABASE_USER:goshield}
+  password: ${GOSHIELD_DATABASE_PASSWORD:goshield_secret}
+  dbname: ${GOSHIELD_DATABASE_DBNAME:goshield}
+  sslmode: disable
+  max_open_conns: 50
+  max_idle_conns: 10
+  conn_max_lifetime: 30m
+
+redis:
+  addr: ${GOSHIELD_REDIS_ADDR:localhost:6379}
+  password: ""
+  db: 0
+  pool_size: 20
+
+kafka:
+  brokers:
+    - ${GOSHIELD_KAFKA_BROKERS:localhost:9092}
+  group_id: claim-service-group
+  topic_claims_new: claims.new
+  topic_claims_analyzed: claims.analyzed
+  topic_claims_flagged: claims.flagged
+  topic_claims_failed: claims.failed
+
+storage:
+  provider: minio
+  endpoint: ${GOSHIELD_STORAGE_ENDPOINT:localhost:9000}
+  access_key: ${GOSHIELD_STORAGE_ACCESS_KEY:minioadmin}
+  secret_key: ${GOSHIELD_STORAGE_SECRET_KEY:minioadmin}
+  bucket: goshield-claims
+  use_ssl: false
+
+auth:
+  jwt_secret: ${GOSHIELD_AUTH_JWT_SECRET:change-me-in-production}
+  jwt_access_expiry: 15m
+  jwt_refresh_expiry: 168h
+
+telemetry:
+  otlp_endpoint: ${GOSHIELD_TELEMETRY_OTLP_ENDPOINT:localhost:4317}
+  service_name: claim-service
+  sampling_rate: 1.0
+  metrics_enabled: true
+  tracing_enabled: true
+
+notification:
+  fraud_threshold_flag: 0.80
+  fraud_threshold_alert: 0.95

@@ -1,0 +1,68 @@
+app:
+  name: notification-service
+  env: development
+  port: 8083
+  debug: true
+
+database:
+  host: localhost
+  port: 5432
+  user: goshield
+  password: goshield
+  name: goshield
+  ssl_mode: disable
+  max_conns: 20
+  min_conns: 2
+  max_conn_lifetime: 3600s
+  max_conn_idle_time: 600s
+
+redis:
+  addr: localhost:6379
+  password: ""
+  db: 0
+
+kafka:
+  brokers:
+    - localhost:9092
+  topic_claims_new: claims.new
+  topic_claims_analyzed: claims.analyzed
+  topic_claims_flagged: claims.flagged
+  topic_claims_failed: claims.failed
+  consumer_group: notification-service
+  min_bytes: 1
+  max_bytes: 10485760
+  max_wait: 3s
+  retry_max: 3
+  retry_backoff: 1s
+
+jwt:
+  secret: "change-me-in-production-32-chars!"
+  access_expiry: 15m
+  refresh_expiry: 168h
+
+notification:
+  fraud_threshold_flag: 0.80
+  fraud_threshold_alert: 0.90
+  email:
+    smtp_host: ""
+    smtp_port: 587
+    smtp_user: ""
+    smtp_password: ""
+    from: "noreply@goshield.io"
+    to_addresses: []
+  slack:
+    webhook_url: ""
+    channel: "#fraud-alerts"
+    username: "GoShield Bot"
+
+telemetry:
+  jaeger_endpoint: "http://localhost:14268/api/traces"
+  service_name: notification-service
+  sample_rate: 1.0
+  enabled: true
+
+logger:
+  level: debug
+  format: json
+  service_name: notification-service
+  development: true

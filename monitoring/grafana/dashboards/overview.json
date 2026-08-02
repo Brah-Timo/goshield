@@ -1,0 +1,21 @@
+{
+  "__inputs": [{ "name": "DS_PROMETHEUS", "label": "Prometheus", "type": "datasource", "pluginId": "prometheus" }],
+  "title": "GoShield — Platform Overview",
+  "uid": "goshield-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-3h", "to": "now" },
+  "panels": [
+    { "id": 1, "title": "Request Rate (req/s)", "type": "timeseries", "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [{ "expr": "sum(rate(http_requests_total{namespace=\"goshield\"}[5m])) by (service)", "legendFormat": "{{service}}", "datasource": { "uid": "${DS_PROMETHEUS}" } }] },
+    { "id": 2, "title": "Error Rate (%)", "type": "timeseries", "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [{ "expr": "100 * sum(rate(http_requests_total{namespace=\"goshield\",status=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total{namespace=\"goshield\"}[5m])) by (service)", "legendFormat": "{{service}}", "datasource": { "uid": "${DS_PROMETHEUS}" } }] },
+    { "id": 3, "title": "P99 Latency (ms)", "type": "timeseries", "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [{ "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"goshield\"}[5m])) by (le, service)) * 1000", "legendFormat": "p99 {{service}}", "datasource": { "uid": "${DS_PROMETHEUS}" } }] },
+    { "id": 4, "title": "Pod Restarts", "type": "stat", "gridPos": { "x": 12, "y": 8, "w": 6, "h": 4 },
+      "targets": [{ "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"goshield\"}) by (pod)", "datasource": { "uid": "${DS_PROMETHEUS}" } }] },
+    { "id": 5, "title": "Claims Processed (total)", "type": "stat", "gridPos": { "x": 18, "y": 8, "w": 6, "h": 4 },
+      "targets": [{ "expr": "sum(kafka_consumer_records_consumed_total{namespace=\"goshield\",topic=\"claims.new\"})", "datasource": { "uid": "${DS_PROMETHEUS}" } }] }
+  ]
+}

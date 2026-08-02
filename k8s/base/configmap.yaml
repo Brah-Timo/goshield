@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: goshield-config
+  namespace: goshield
+data:
+  GOSHIELD_APP_ENV: "production"
+  GOSHIELD_DATABASE_HOST: "postgres-svc"
+  GOSHIELD_DATABASE_PORT: "5432"
+  GOSHIELD_DATABASE_NAME: "goshield"
+  GOSHIELD_DATABASE_SSL_MODE: "require"
+  GOSHIELD_REDIS_ADDR: "redis-svc:6379"
+  GOSHIELD_KAFKA_BROKERS: "kafka-svc:9092"
+  GOSHIELD_TELEMETRY_JAEGER_ENDPOINT: "http://jaeger-collector:14268/api/traces"
+  GOSHIELD_TELEMETRY_ENABLED: "true"

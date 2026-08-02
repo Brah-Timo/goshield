@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "github.com/goshield/gen/auth/v1;authv1";
+
+service AuthService {
+  rpc ValidateToken(ValidateRequest) returns (ValidateResponse);
+  rpc GetUserPermissions(PermissionRequest) returns (PermissionResponse);
+}
+
+message ValidateRequest {
+  string token = 1;
+}
+
+message ValidateResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string company_id = 3;
+  string role = 4;
+  string email = 5;
+}
+
+message PermissionRequest {
+  string user_id = 1;
+  string resource = 2;
+  string action = 3;
+}
+
+message PermissionResponse {
+  bool allowed = 1;
+}
