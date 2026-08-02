@@ -55,16 +55,18 @@ func New(svc service.AuthService, cfg *config.AppConfig, logger *zap.Logger) *Ha
 }
 
 // RegisterRoutes wires all auth routes onto the Fiber router group.
+// The group already carries the versioned prefix (e.g. /auth/v1 or /api/v1),
+// so paths here should NOT repeat that prefix.
 func (h *Handler) RegisterRoutes(r fiber.Router, jwtMgr *middleware.JWTManager) {
 	// Public routes
-	r.Post("/auth/register", h.Register)
-	r.Post("/auth/login", h.Login)
-	r.Post("/auth/refresh", h.RefreshTokens)
-	r.Post("/auth/logout", h.Logout)
+	r.Post("/register", h.Register)
+	r.Post("/login", h.Login)
+	r.Post("/refresh", h.RefreshTokens)
+	r.Post("/logout", h.Logout)
 
 	// OAuth2 routes
-	r.Get("/auth/oauth/google", h.GoogleOAuthRedirect)
-	r.Get("/auth/oauth/google/callback", h.GoogleOAuthCallback)
+	r.Get("/oauth/google", h.GoogleOAuthRedirect)
+	r.Get("/oauth/google/callback", h.GoogleOAuthCallback)
 
 	// Protected user management routes
 	protected := r.Group("/users", middleware.JWTMiddleware(jwtMgr))
@@ -147,7 +149,7 @@ func (h *Handler) Register(c *fiber.Ctx) error {
 		return respondError(c, http.StatusInternalServerError, "registration failed", nil)
 	}
 
-	return c.Status(http.StatusCreated).JSON(resp)
+	return c.Status(http.StatusCreated).JSON(normaliseAuthResponse(resp))
 }
 
 // Login godoc
@@ -189,7 +191,7 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		Secure:   true,
 	})
 
-	return c.JSON(resp)
+	return c.JSON(normaliseAuthResponse(resp))
 }
 
 // RefreshTokens godoc
@@ -225,7 +227,7 @@ func (h *Handler) RefreshTokens(c *fiber.Ctx) error {
 		Secure:   true,
 	})
 
-	return c.JSON(resp)
+	return c.JSON(normaliseAuthResponse(resp))
 }
 
 // Logout godoc
@@ -513,6 +515,48 @@ func stringOrEmpty(v any) string {
 		return s
 	}
 	return ""
+}
+
+// userDTO is a camelCase representation of domain.User for the frontend.
+type userDTO struct {
+	ID          string     `json:"id"`
+	CompanyID   string     `json:"companyId"`
+	Email       string     `json:"email"`
+	FirstName   string     `json:"firstName"`
+	LastName    string     `json:"lastName"`
+	Role        string     `json:"role"`
+	AvatarURL   string     `json:"avatarUrl,omitempty"`
+	Active      bool       `json:"active"`
+	LastLoginAt *time.Time `json:"lastLoginAt,omitempty"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+// normaliseAuthResponse converts the backend AuthResponse to the shape the
+// frontend expects: { user (camelCase), tokens: { accessToken, refreshToken } }.
+func normaliseAuthResponse(r *service.AuthResponse) fiber.Map {
+	u := r.User
+	dto := userDTO{
+		ID:          u.ID,
+		CompanyID:   u.CompanyID,
+		Email:       u.Email,
+		FirstName:   u.FirstName,
+		LastName:    u.LastName,
+		Role:        string(u.Role),
+		AvatarURL:   u.AvatarURL,
+		Active:      u.Active,
+		LastLoginAt: u.LastLoginAt,
+		CreatedAt:   u.CreatedAt,
+		UpdatedAt:   u.UpdatedAt,
+	}
+	return fiber.Map{
+		"user": dto,
+		"tokens": fiber.Map{
+			"accessToken":  r.AccessToken,
+			"refreshToken": r.RefreshToken,
+			"expiresAt":    r.ExpiresAt,
+		},
+	}
 }
 
 // Health returns a simple liveness check.
