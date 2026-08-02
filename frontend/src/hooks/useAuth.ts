@@ -16,7 +16,10 @@ export function useLogin() {
     },
     onSuccess({ user, tokens }) {
       setUser(user, tokens.accessToken)
-      wsClient.connect(user.companyId)
+      // WebSocket uses companyId — connect after auth is stored
+      if (user.companyId) {
+        wsClient.connect(user.companyId)
+      }
       navigate('/dashboard')
     },
   })
