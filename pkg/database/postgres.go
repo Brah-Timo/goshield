@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 
@@ -76,7 +77,7 @@ func (db *DB) Stats() *pgxpool.Stat {
 
 // WithTx executes a function within a transaction.
 // Commits on success, rolls back on error or panic.
-func (db *DB) WithTx(ctx context.Context, fn func(ctx context.Context, tx pgxpool.Tx) error) error {
+func (db *DB) WithTx(ctx context.Context, fn func(ctx context.Context, tx pgx.Tx) error) error {
 	tx, err := db.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
