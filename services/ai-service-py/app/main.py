@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.routes import router
@@ -64,6 +65,28 @@ def create_app() -> FastAPI:
 
     # Routes
     app.include_router(router, prefix="/api/v1")
+
+    # ── Root landing endpoint ───────────────────────────────────────────────────
+    @app.get("/", include_in_schema=False)
+    def root():
+        """Service status — shown when opening the service in a browser."""
+        model = getattr(app.state, "model", None)
+        return JSONResponse({
+            "service": settings.service_name,
+            "status": "ok",
+            "version": settings.version,
+            "environment": settings.environment,
+            "model": settings.model_version,
+            "model_loaded": model.is_loaded() if model else False,
+            "docs": "/docs",
+            "health": "/api/v1/health",
+            "readyz": "/api/v1/readyz",
+        })
+
+    # Suppress browser favicon 404 log spam.
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon():
+        return Response(status_code=204)
 
     return app
 
