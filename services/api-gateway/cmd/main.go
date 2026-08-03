@@ -76,12 +76,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	tp, err := pkgtel.Setup(ctx, pkgtel.TelemetryConfig{
-		JaegerEndpoint: cfg.Telemetry.JaegerEndpoint,
-		ServiceName:    cfg.Telemetry.ServiceName,
-		SampleRate:     cfg.Telemetry.SampleRate,
-		Enabled:        cfg.Telemetry.Enabled,
-	}, log)
+	tp, err := pkgtel.Setup(ctx, cfg.Telemetry, log)
 	if err != nil {
 		log.Fatal("telemetry init", zap.Error(err))
 	}

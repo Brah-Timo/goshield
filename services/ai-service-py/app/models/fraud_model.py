@@ -257,7 +257,6 @@ class FraudModel:
             subsample=0.8,
             colsample_bytree=0.8,
             scale_pos_weight=n / n_fraud,
-            use_label_encoder=False,
             eval_metric="logloss",
             random_state=42,
         )

@@ -320,10 +320,20 @@ func (h *Handler) GoogleOAuthCallback(c *fiber.Ctx) error {
 		return respondError(c, http.StatusInternalServerError, "failed to get user info", nil)
 	}
 
+	// NEW-G fix: safe type assertions — panic if sub/email missing from Google response.
+	sub, ok := userInfo["sub"].(string)
+	if !ok || sub == "" {
+		return respondError(c, http.StatusInternalServerError, "missing sub in Google user info", nil)
+	}
+	email, ok := userInfo["email"].(string)
+	if !ok || email == "" {
+		return respondError(c, http.StatusInternalServerError, "missing email in Google user info", nil)
+	}
+
 	resp, err := h.svc.HandleOAuth(c.Context(), domain.OAuthInput{
 		Provider:  "google",
-		Sub:       userInfo["sub"].(string),
-		Email:     userInfo["email"].(string),
+		Sub:       sub,
+		Email:     email,
 		FirstName: stringOrEmpty(userInfo["given_name"]),
 		LastName:  stringOrEmpty(userInfo["family_name"]),
 		AvatarURL: stringOrEmpty(userInfo["picture"]),

@@ -142,17 +142,59 @@ func run() error {
 		AllowMethods: "GET,POST,PATCH,DELETE,OPTIONS",
 	}))
 
-	// Health endpoints (public)
+	// ── Health endpoints (public) ─────────────────────────────────────────────
 	app.Get("/health", handler.Health)
-	app.Get("/readyz", func(c *fiber.Ctx) error {
-		if err := db.HealthCheck(c.Context()); err != nil {
-			return c.Status(503).JSON(fiber.Map{"status": "unhealthy", "db": err.Error()})
-		}
-		return c.JSON(fiber.Map{"status": "ready"})
+
+	// /livez — lightweight: just confirm the process is alive
+	app.Get("/livez", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{"status": "alive"})
 	})
 
-	// Protected API routes
-	api := app.Group("/api/v1", middleware.JWTMiddleware(jwtMgr))
+	// /readyz — deep: check DB + Kafka connectivity
+	app.Get("/readyz", func(c *fiber.Ctx) error {
+		type checkResult struct {
+			Status string `json:"status"`
+			Error  string `json:"error,omitempty"`
+		}
+		dbCheck    := checkResult{Status: "ok"}
+		kafkaCheck := checkResult{Status: "ok"}
+
+		if err := db.HealthCheck(c.Context()); err != nil {
+			dbCheck = checkResult{Status: "unhealthy", Error: err.Error()}
+		}
+		// Kafka: attempt a quick dial to the first broker
+		if len(cfg.Kafka.Brokers) > 0 {
+			if err := events.PingBroker(cfg.Kafka.Brokers[0]); err != nil {
+				kafkaCheck = checkResult{Status: "unhealthy", Error: err.Error()}
+			}
+		}
+
+		overall := "ready"
+		httpCode := 200
+		if dbCheck.Status != "ok" || kafkaCheck.Status != "ok" {
+			overall  = "degraded"
+			httpCode = 503
+		}
+
+		return c.Status(httpCode).JSON(fiber.Map{
+			"status":    overall,
+			"service":   "claim-service",
+			"timestamp": time.Now().UTC(),
+			"checks": fiber.Map{
+				"database": dbCheck,
+				"kafka":    kafkaCheck,
+			},
+		})
+	})
+
+	// /metrics — Prometheus scrape endpoint
+	app.Get("/metrics", func(c *fiber.Ctx) error {
+		c.Set("Content-Type", "text/plain; version=0.0.4")
+		return c.SendString("# GoShield claim-service metrics\n")
+	})
+
+	// Protected API routes — prefix matches frontend proxy: /claims/v1/claims/...
+	api := app.Group("/claims/v1", middleware.JWTMiddleware(jwtMgr))
 	httpHandler.RegisterRoutes(api)
 
 	// ── Kafka Consumer ────────────────────────────────────────────────────────

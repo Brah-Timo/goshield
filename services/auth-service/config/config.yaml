@@ -5,31 +5,31 @@ service:
   version: "1.0.0"
 
 database:
-  host: ${GOSHIELD_DATABASE_HOST:localhost}
+  host: localhost
   port: 5432
-  user: ${GOSHIELD_DATABASE_USER:goshield}
-  password: ${GOSHIELD_DATABASE_PASSWORD:goshield_secret}
-  dbname: ${GOSHIELD_DATABASE_DBNAME:goshield}
+  user: goshield
+  password: goshield_secret
+  dbname: goshield
   sslmode: disable
   max_open_conns: 50
   max_idle_conns: 10
   conn_max_lifetime: 30m
 
 redis:
-  addr: ${GOSHIELD_REDIS_ADDR:localhost:6379}
+  addr: localhost:6379
   password: ""
   db: 0
 
 auth:
-  jwt_secret: ${GOSHIELD_AUTH_JWT_SECRET:change-me-in-production-must-be-32-chars}
+  jwt_secret: "change-me-in-production-must-be-32-chars"
   jwt_access_expiry: 15m
   jwt_refresh_expiry: 168h
-  oauth_google_client_id: ${GOSHIELD_AUTH_OAUTH_GOOGLE_CLIENT_ID:}
-  oauth_google_secret: ${GOSHIELD_AUTH_OAUTH_GOOGLE_SECRET:}
-  oauth_google_callback: ${GOSHIELD_AUTH_OAUTH_GOOGLE_CALLBACK:http://localhost:8081/api/v1/auth/oauth/google/callback}
+  oauth_google_client_id: ""
+  oauth_google_secret: ""
+  oauth_google_callback: "http://localhost:8081/api/v1/auth/oauth/google/callback"
 
 telemetry:
-  otlp_endpoint: ${GOSHIELD_TELEMETRY_OTLP_ENDPOINT:localhost:4317}
+  otlp_endpoint: "localhost:4317"
   service_name: auth-service
   sampling_rate: 1.0
   metrics_enabled: true

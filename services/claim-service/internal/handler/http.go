@@ -72,7 +72,8 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	claims.Get("/stats", h.GetStats)
 	claims.Get("/:id", h.GetClaim)
 	claims.Post("/:id/document", h.UploadDocument)
-	claims.Patch("/:id/review", h.ReviewClaim)
+	claims.Post("/:id/review", h.ReviewClaim)  // NEW-I fix: frontend POSTs to /:id/review
+	claims.Patch("/:id/review", h.ReviewClaim) // keep PATCH alias for API compatibility
 	claims.Delete("/:id", h.DeleteClaim)
 }
 

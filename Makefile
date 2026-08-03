@@ -6,7 +6,7 @@ SHELL := /bin/bash
 
 # Project settings
 PROJECT := goshield
-MODULE  := github.com/Brah-Timo/
+MODULE  := github.com/goshield
 SERVICES := api-gateway auth-service claim-service ai-service-go notification
 GO      := go
 GOFLAGS := -trimpath

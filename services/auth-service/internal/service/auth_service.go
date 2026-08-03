@@ -146,13 +146,10 @@ func (s *authService) RefreshTokens(ctx context.Context, refreshTokenStr string)
 		s.logger.Warn("failed to revoke old refresh token", zap.Error(err))
 	}
 
-	user, err := s.repo.GetByEmail(ctx, rt.UserID)
+	// rt.UserID is a UUID — use GetByID directly (GetByEmail would always fail here)
+	user, err := s.repo.GetByID(ctx, rt.UserID, "")
 	if err != nil {
-		// Fall back to by-ID if email not found
-		user, err = s.repo.GetByID(ctx, rt.UserID, "")
-		if err != nil {
-			return nil, fmt.Errorf("user not found for refresh: %w", err)
-		}
+		return nil, fmt.Errorf("user not found for refresh: %w", err)
 	}
 
 	return s.issueTokens(ctx, user)

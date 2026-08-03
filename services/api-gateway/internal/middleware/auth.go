@@ -23,9 +23,11 @@ func JWTAuthMiddleware(mgr *pkgmw.JWTManager, publicPaths []string) fiber.Handle
 		if _, ok := publicSet[path]; ok {
 			return c.Next()
 		}
-		// Also skip exact prefix matches (e.g. /auth/*).
+		// Also allow sub-paths of public prefixes (e.g. /auth/v1/oauth/google),
+		// but require the next character to be "/" so that /auth/v1/oauth does
+		// NOT grant access to /auth/v1/oauth-admin or /auth/v1/oauthEvil.
 		for _, p := range publicPaths {
-			if strings.HasPrefix(path, p) {
+			if strings.HasPrefix(path, p+"/") {
 				return c.Next()
 			}
 		}

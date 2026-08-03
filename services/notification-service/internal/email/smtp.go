@@ -34,7 +34,15 @@ type FraudAlertData struct {
 	ReviewURL  string
 }
 
-var fraudAlertTpl = template.Must(template.New("fraud_alert").Parse(`
+// fraudAlertFuncMap registers custom template functions.
+var fraudAlertFuncMap = template.FuncMap{
+	"mul": func(a, b float64) float64 { return a * b },
+}
+
+var fraudAlertTpl = template.Must(
+	template.New("fraud_alert").
+		Funcs(fraudAlertFuncMap).
+		Parse(`
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><title>GoShield Fraud Alert</title></head>
@@ -73,14 +81,7 @@ func (m *Mailer) SendFraudAlert(to []string, data FraudAlertData) error {
 	}
 
 	var body bytes.Buffer
-	tplFuncs := template.FuncMap{
-		"mul": func(a, b float64) float64 { return a * b },
-	}
-	tpl, err := template.New("fraud_alert").Funcs(tplFuncs).Parse(fraudAlertTpl.Tree.Root.String())
-	if err != nil {
-		return fmt.Errorf("parse template: %w", err)
-	}
-	if err := tpl.Execute(&body, data); err != nil {
+	if err := fraudAlertTpl.Execute(&body, data); err != nil {
 		return fmt.Errorf("render template: %w", err)
 	}
 

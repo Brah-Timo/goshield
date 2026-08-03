@@ -59,7 +59,7 @@ func (r *userRepo) Create(ctx context.Context, user *domain.User) error {
 			id, company_id, email, password_hash, first_name, last_name,
 			role, avatar_url, oauth_provider, oauth_sub, active, is_active,
 			created_at, updated_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11,$12,$13)
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 		ON CONFLICT (company_id, email) DO NOTHING`
 
 	now := time.Now().UTC()
@@ -70,7 +70,8 @@ func (r *userRepo) Create(ctx context.Context, user *domain.User) error {
 		user.ID, user.CompanyID, user.Email, user.PasswordHash,
 		user.FirstName, user.LastName, string(user.Role),
 		user.AvatarURL, user.OAuthProvider, user.OAuthSub,
-		user.Active, now, now,
+		user.Active, user.Active, // $11=active, $12=is_active (kept in sync)
+		now, now,
 	)
 	if err != nil {
 		return fmt.Errorf("insert user: %w", err)

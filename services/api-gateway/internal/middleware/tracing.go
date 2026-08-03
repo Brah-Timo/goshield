@@ -6,7 +6,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -37,9 +37,9 @@ func TracingMiddleware() fiber.Handler {
 		ctx, span := tracer.Start(ctx, spanName,
 			trace.WithSpanKind(trace.SpanKindServer),
 			trace.WithAttributes(
-				semconv.HTTPMethod(c.Method()),
-				semconv.HTTPURL(c.OriginalURL()),
-				semconv.HTTPRoute(c.Route().Path),
+				semconv.HTTPRequestMethodKey.String(c.Method()),
+				attribute.String("http.url", c.OriginalURL()),
+				semconv.HTTPRouteKey.String(c.Route().Path),
 				attribute.String("http.request_id", reqID),
 				attribute.String("net.peer.ip", c.IP()),
 			),
@@ -57,7 +57,7 @@ func TracingMiddleware() fiber.Handler {
 
 		err := c.Next()
 
-		span.SetAttributes(semconv.HTTPStatusCode(c.Response().StatusCode()))
+		span.SetAttributes(semconv.HTTPResponseStatusCodeKey.Int(c.Response().StatusCode()))
 		if err != nil {
 			span.RecordError(err)
 		}

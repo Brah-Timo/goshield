@@ -150,7 +150,6 @@ def train(data_path: str | None, output_dir: str) -> None:
         gamma=0.1,
         reg_alpha=0.1,
         reg_lambda=1.0,
-        use_label_encoder=False,
         eval_metric="aucpr",
         random_state=42,
         n_jobs=-1,

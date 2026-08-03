@@ -101,9 +101,10 @@ func (c *ClaimConsumer) Handle(ctx context.Context, evt events.Event) error {
 		return fmt.Errorf("ai analysis for %s: %w", payload.ClaimID, err)
 	}
 
-	// Publish claim.analyzed event
+	// Publish claim.analyzed event (include CompanyID for downstream routing)
 	analyzedPayload := events.ClaimAnalyzedPayload{
 		ClaimID:     result.ClaimID,
+		CompanyID:   payload.CompanyID,
 		FraudScore:  result.FraudScore,
 		Reason:      result.Reason,
 		RiskFactors: result.RiskFactors,

@@ -261,7 +261,8 @@ func (s *claimService) ReviewClaim(ctx context.Context, input domain.ReviewInput
 		AnalystNotes: input.AnalystNotes,
 	})
 
-	_ = s.producer.Publish(ctx, s.cfg.Kafka.TopicClaimsNew, events.Event{
+	// Publish review result to claims.analyzed (not claims.new which re-triggers AI pipeline)
+	_ = s.producer.Publish(ctx, s.cfg.Kafka.TopicClaimsAnalyzed, events.Event{
 		ID:         uuid.New().String(),
 		Type:       eventType,
 		OccurredAt: time.Now().UTC(),
@@ -288,11 +289,15 @@ func (s *claimService) HandleAnalysisResult(ctx context.Context, payload events.
 	}
 
 	// If fraud score >= threshold, also publish flagged event.
+	// The ClaimAnalyzedPayload doesn't carry CompanyID — we embed it in the event envelope
+	// using the CompanyID from the original claim.created event (stored in the Kafka message).
+	// For now, publish with empty CompanyID; the notification-service will broadcast to all
+	// connected clients (acceptable for MVP; enrich by adding CompanyID to ClaimAnalyzedPayload).
 	if payload.FraudScore >= s.cfg.Notification.FraudThresholdFlag {
 		flaggedPayload := events.ClaimFlaggedPayload{
 			ClaimID:    payload.ClaimID,
 			FraudScore: payload.FraudScore,
-			CompanyID:  "",
+			CompanyID:  payload.CompanyID,
 			Reason:     payload.Reason,
 		}
 		if pubErr := s.producer.PublishPayload(
@@ -300,7 +305,7 @@ func (s *claimService) HandleAnalysisResult(ctx context.Context, payload events.
 			s.cfg.Kafka.TopicClaimsFlagged,
 			events.EventClaimFlagged,
 			uuid.New().String(),
-			"",
+			payload.CompanyID,
 			flaggedPayload,
 		); pubErr != nil {
 			s.logger.Warn("failed to publish claim.flagged",

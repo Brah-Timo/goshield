@@ -4,13 +4,6 @@
 
 ---
 
-
-<img width="500" height="499" alt="image" src="https://github.com/user-attachments/assets/ce0673a4-0ece-49ee-97d3-99e888b4fce0" />
-
-
-
-
-
 ## Architecture
 
 ```
@@ -221,7 +214,7 @@ Grafana dashboards (import from `monitoring/grafana/dashboards/`):
 
 ```
 goshield/
-├── go.mod                          # Single monorepo module: github.com/Brah-Timo/goshield
+├── go.mod                          # Single monorepo module: github.com/goshield
 ├── migrations/                     # SQL migrations (goose)
 │   ├── 001_initial_schema.sql
 │   ├── 002_seed_demo_data.sql

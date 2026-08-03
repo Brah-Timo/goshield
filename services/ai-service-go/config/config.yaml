@@ -6,7 +6,7 @@ service:
 
 kafka:
   brokers:
-    - ${GOSHIELD_KAFKA_BROKERS:localhost:9092}
+    - localhost:9092
   group_id: ai-service-go-group
   topic_claims_new: claims.new
   topic_claims_analyzed: claims.analyzed
@@ -14,10 +14,10 @@ kafka:
   topic_claims_failed: claims.failed
 
 grpc:
-  ai_service_addr: ${GOSHIELD_GRPC_AI_SERVICE_ADDR:http://ai-service-py:8090}
+  ai_service_addr: "http://localhost:8090"
 
 telemetry:
-  otlp_endpoint: ${GOSHIELD_TELEMETRY_OTLP_ENDPOINT:localhost:4317}
+  otlp_endpoint: "localhost:4317"
   service_name: ai-service-go
   sampling_rate: 1.0
   metrics_enabled: true
