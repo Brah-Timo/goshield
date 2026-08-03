@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api, extractError } from '@/lib/api'
 import { wsClient } from '@/lib/ws'
 import { useAuthStore } from '@/store/auth'
-import type { LoginRequest, RegisterRequest, User, AuthTokens } from '@/types'
+import type { LoginRequest, RegisterRequest, UpdateUserRequest, User, AuthTokens } from '@/types'
 
 export function useLogin() {
   const { setUser } = useAuthStore()
@@ -57,6 +57,27 @@ export function useLogout() {
 
 export function useCurrentUser() {
   return useAuthStore((s) => s.user)
+}
+
+export function useUpdateUser() {
+  const { setUser } = useAuthStore()
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateUserRequest }) => {
+      const res = await api.patch<User>(`/auth/v1/users/${id}`, data)
+      return res.data
+    },
+    onSuccess(updatedUser) {
+      // Re-read current access token (stays unchanged) and update user in store
+      const currentUser = useAuthStore.getState().user
+      if (currentUser && updatedUser.id === currentUser.id) {
+        // Access token is held separately — just update the user object
+        const token = (api.defaults.headers.common['Authorization'] as string | undefined)
+          ?.replace('Bearer ', '') ?? ''
+        setUser(updatedUser, token)
+      }
+    },
+  })
 }
 
 export { extractError }

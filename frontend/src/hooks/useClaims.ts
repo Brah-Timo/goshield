@@ -96,3 +96,27 @@ export function useClaimStats() {
     },
   })
 }
+
+export function useDeleteClaim() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/claims/v1/claims/${id}`)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: claimKeys.all })
+    },
+  })
+}
+
+export function useDailyStats(days = 30) {
+  return useQuery({
+    queryKey: ['claims', 'daily-stats', days],
+    queryFn: async () => {
+      const { data } = await api.get<import('@/types').DailyStat[]>(
+        `/claims/v1/stats/daily?days=${days}`
+      )
+      return data
+    },
+  })
+}

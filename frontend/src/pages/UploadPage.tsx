@@ -7,11 +7,12 @@ import { useCreateClaim, useUploadDocument } from '@/hooks/useClaims'
 import { useNavigate } from 'react-router-dom'
 import { UploadCloud, File, X } from 'lucide-react'
 import { extractError } from '@/hooks/useAuth'
+import { getAccessToken } from '@/lib/api'
 import type { CreateClaimRequest } from '@/types'
 
 const schema = z.object({
   policyNumber:  z.string().min(1,'Required'),
-  claimType:     z.enum(['MEDICAL','AUTO','PROPERTY','LIFE','LIABILITY','OTHER']),
+  claimType:     z.enum(['HEALTH','CAR','PROPERTY','LIFE','TRAVEL','OTHER']),
   amount:        z.number({ coerce: true }).positive('Must be positive'),
   description:   z.string().min(10,'At least 10 characters'),
   incidentDate:  z.string().min(1,'Required'),
@@ -42,7 +43,7 @@ export default function UploadPage() {
       form.append('document', file)
       await fetch(`/claims/v1/claims/${claim.id}/document`, {
         method: 'POST', body: form,
-        headers: { Authorization: `Bearer ${localStorage.getItem('at') ?? ''}` }
+        headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` }
       })
     }
     navigate(`/claims/${claim.id}`)
@@ -71,7 +72,7 @@ export default function UploadPage() {
           <div>
             <label className="block text-sm font-medium mb-1.5">Claim Type</label>
             <select {...register('claimType')} className="w-full rounded-lg border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-              {['MEDICAL','AUTO','PROPERTY','LIFE','LIABILITY','OTHER'].map(t => <option key={t}>{t}</option>)}
+              {['HEALTH','CAR','PROPERTY','LIFE','TRAVEL','OTHER'].map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
           <div>

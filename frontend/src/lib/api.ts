@@ -45,9 +45,9 @@ api.interceptors.response.use(
           { withCredentials: true }
         )
         setAccessToken(data.tokens.accessToken)
-        refreshQueue.forEach((cb) => cb(data.access_token))
+        refreshQueue.forEach((cb) => cb(data.tokens.accessToken))
         refreshQueue = []
-        original.headers.Authorization = `Bearer ${data.access_token}`
+        original.headers.Authorization = `Bearer ${data.tokens.accessToken}`
         return api(original)
       } catch {
         clearAccessToken()

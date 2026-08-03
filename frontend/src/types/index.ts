@@ -33,21 +33,22 @@ export interface RegisterRequest {
 }
 
 // ── Claims ────────────────────────────────────────────────────────────────────
+// BUG-25 fix: removed 'ANALYZED' — backend never sets this status.
+// Backend lifecycle: PENDING → PROCESSING → FLAGGED | APPROVED → REJECTED | MORE_INFO
 export type ClaimStatus =
   | 'PENDING'
   | 'PROCESSING'
-  | 'ANALYZED'
   | 'FLAGGED'
   | 'APPROVED'
   | 'REJECTED'
   | 'MORE_INFO'
 
 export type ClaimType =
-  | 'MEDICAL'
-  | 'AUTO'
+  | 'HEALTH'
+  | 'CAR'
   | 'PROPERTY'
   | 'LIFE'
-  | 'LIABILITY'
+  | 'TRAVEL'
   | 'OTHER'
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
@@ -134,13 +135,18 @@ export interface DailyStat {
 }
 
 // ── Notifications ─────────────────────────────────────────────────────────────
+// Wire format sent by the notification-service WebSocket hub:
+// { "type": "claim.flagged", "payload": { "claim_id": "...", "fraud_score": 0.9, ... } }
 export interface WSMessage {
   type: 'claim.analyzed' | 'claim.flagged' | 'claim.approved' | 'claim.rejected' | 'ping'
-  claimId?: string
-  fraudScore?: number
-  riskLevel?: RiskLevel
-  status?: ClaimStatus
-  timestamp: string
+  payload?: {
+    claim_id?: string
+    fraud_score?: number
+    risk_factors?: string[]
+    amount?: number
+    reason?: string
+    status?: string
+  }
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────
@@ -155,4 +161,11 @@ export interface PaginationMeta {
   pageSize: number
   total: number
   totalPages: number
+}
+
+export interface UpdateUserRequest {
+  firstName?: string
+  lastName?: string
+  role?: UserRole
+  active?: boolean
 }
