@@ -48,6 +48,7 @@ type ClaimCreatedPayload struct {
 // ClaimAnalyzedPayload is the payload for EventClaimAnalyzed.
 type ClaimAnalyzedPayload struct {
 	ClaimID     string   `json:"claim_id"`
+	CompanyID   string   `json:"company_id"`
 	FraudScore  float64  `json:"fraud_score"`
 	Reason      string   `json:"reason"`
 	RiskFactors []string `json:"risk_factors"`
@@ -154,7 +155,7 @@ func NewConsumer(brokers []string, topic, groupID string, logger *zap.Logger) *C
 		MinBytes:       1,
 		MaxBytes:       10e6, // 10MB
 		CommitInterval: time.Second,
-		StartOffset:    kafka.LastOffset,
+		StartOffset:    kafka.FirstOffset,
 		RetentionTime:  7 * 24 * time.Hour,
 		MaxWait:        500 * time.Millisecond,
 	})
@@ -231,4 +232,15 @@ func (c *Consumer) Consume(ctx context.Context, handler HandlerFunc) error {
 // Close closes the consumer.
 func (c *Consumer) Close() error {
 	return c.reader.Close()
+}
+
+// PingBroker performs a lightweight TCP dial to verify a Kafka broker is reachable.
+// Used for health-check /readyz endpoints. Returns nil on success.
+func PingBroker(broker string) error {
+	conn, err := kafka.DialContext(context.Background(), "tcp", broker)
+	if err != nil {
+		return fmt.Errorf("kafka broker unreachable (%s): %w", broker, err)
+	}
+	_ = conn.Close()
+	return nil
 }

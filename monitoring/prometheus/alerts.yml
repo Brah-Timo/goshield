@@ -1,4 +1,5 @@
 groups:
+  # ── API / Infrastructure ───────────────────────────────────────────────────
   - name: goshield.api
     rules:
       - alert: HighLatency
@@ -9,6 +10,15 @@ groups:
         annotations:
           summary: "High API latency on {{ $labels.service }}"
           description: "p95 latency is {{ $value | humanizeDuration }} (threshold: 200ms)"
+
+      - alert: VeryHighLatency
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 1.0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical API latency on {{ $labels.service }}"
+          description: "p99 latency is {{ $value | humanizeDuration }} (threshold: 1s)"
 
       - alert: HighErrorRate
         expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.01
@@ -26,8 +36,18 @@ groups:
           severity: critical
         annotations:
           summary: "Service {{ $labels.job }} is down"
-          description: "{{ $labels.instance }} has been down for more than 1 minute"
+          description: "{{ $labels.instance }} has been unreachable for more than 1 minute"
 
+      - alert: HighMemoryUsage
+        expr: (container_memory_working_set_bytes{namespace="goshield"} / container_spec_memory_limit_bytes{namespace="goshield"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage in {{ $labels.pod }}"
+          description: "{{ $labels.pod }} is using {{ $value | humanizePercentage }} of its memory limit"
+
+  # ── Fraud & Business ───────────────────────────────────────────────────────
   - name: goshield.fraud
     rules:
       - alert: HighFraudScore
@@ -37,8 +57,58 @@ groups:
           severity: critical
         annotations:
           summary: "Very high fraud score detected"
-          description: "Claim {{ $labels.claim_id }} has fraud score {{ $value }}"
+          description: "Claim {{ $labels.claim_id }} scored {{ $value | humanizePercentage }}"
 
+      - alert: SuddenFraudRateSpike
+        expr: |
+          rate(goshield_claims_total{status="flagged"}[5m]) /
+          rate(goshield_claims_total[5m]) > 0.25
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Fraud rate spike detected"
+          description: "More than 25% of claims are being flagged in the last 5 minutes"
+
+      - alert: ReviewQueueBacklog
+        expr: goshield_claims_pending_review > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large analyst review queue backlog"
+          description: "{{ $value }} claims waiting for review (threshold: 100)"
+
+      - alert: AIModelLatencyHigh
+        expr: histogram_quantile(0.99, rate(goshield_ai_inference_duration_seconds_bucket[5m])) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI model inference is slow"
+          description: "P99 inference latency is {{ $value | humanizeDuration }} (threshold: 2s)"
+
+      - alert: AIModelErrorRate
+        expr: rate(goshield_ai_inference_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI model inference errors are elevated"
+          description: "{{ $value | humanize }} inference errors/s — fraud scoring degraded"
+
+      - alert: LargeClaimUnanalyzed
+        expr: goshield_claims_unanalyzed_amount_dollars > 1000000
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large unanalyzed claim exposure"
+          description: "${{ $value | humanize }} in claims pending AI analysis for > 30 min"
+
+  # ── Kafka ──────────────────────────────────────────────────────────────────
+  - name: goshield.kafka
+    rules:
       - alert: KafkaLag
         expr: kafka_consumer_group_lag > 1000
         for: 5m
@@ -46,4 +116,52 @@ groups:
           severity: warning
         annotations:
           summary: "Kafka consumer lag is high"
-          description: "Consumer group {{ $labels.group }} lag: {{ $value }}"
+          description: "Consumer group {{ $labels.group }} topic {{ $labels.topic }} lag: {{ $value }}"
+
+      - alert: KafkaLagCritical
+        expr: kafka_consumer_group_lag > 10000
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka consumer lag is critically high"
+          description: "Consumer group {{ $labels.group }} lag: {{ $value }} — AI analysis severely delayed"
+
+      - alert: KafkaBrokerDown
+        expr: kafka_brokers < 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No Kafka brokers available"
+          description: "All Kafka brokers appear to be down — claim processing halted"
+
+  # ── Database ───────────────────────────────────────────────────────────────
+  - name: goshield.database
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: pg_pool_available_conns == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL connection pool exhausted"
+          description: "No connections available — all services will fail DB operations"
+
+      - alert: DatabaseSlowQueries
+        expr: rate(pg_stat_activity_count{state="active",wait_event_type="Lock"}[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of locked DB queries"
+          description: "{{ $value }} queries waiting on locks — check for long-running transactions"
+
+      - alert: DatabaseDiskFull
+        expr: (pg_database_size_bytes / (1024^3)) > 50
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL database is large"
+          description: "Database size is {{ $value | humanize }}GB — consider archiving old claims"
