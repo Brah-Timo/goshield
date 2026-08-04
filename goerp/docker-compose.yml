@@ -1,0 +1,131 @@
+version: "3.9"
+
+# ─── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  goerp_net:
+    driver: bridge
+
+# ─── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ─── Services ─────────────────────────────────────────────────────────────────
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: goerp_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-goerp}
+      POSTGRES_USER: ${DB_USER:-goerp}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-goerp_secret_2024}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - goerp_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-goerp} -d ${DB_NAME:-goerp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: goerp_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secret_2024}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - goerp_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD:-redis_secret_2024}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── GoERP Application ────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: goerp:latest
+    container_name: goerp_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Application
+      APP_NAME: ${APP_NAME:-GoERP}
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+      APP_ENV: ${APP_ENV:-production}
+
+      # Server
+      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+
+      # Database
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-goerp}
+      DB_PASSWORD: ${DB_PASSWORD:-goerp_secret_2024}
+      DB_NAME: ${DB_NAME:-goerp}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      DATABASE_DSN: "host=db port=5432 user=${DB_USER:-goerp} password=${DB_PASSWORD:-goerp_secret_2024} dbname=${DB_NAME:-goerp} sslmode=${DB_SSLMODE:-disable}"
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-change_this_jwt_secret_in_production_min_32_chars}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-24h}
+      JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-7d}
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_secret_2024}
+      REDIS_DB: ${REDIS_DB:-0}
+
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    networks:
+      - goerp_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Adminer (optional DB UI — remove in production) ──────────────────────────
+  adminer:
+    image: adminer:4
+    container_name: goerp_adminer
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${ADMINER_PORT:-8081}:8080"
+    networks:
+      - goerp_net
+    profiles:
+      - dev

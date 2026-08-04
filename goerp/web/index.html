@@ -1,0 +1,3158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GoERP — Inventory Command Center</title>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-base:#0a0b0e;
+  --bg-surface:#111318;
+  --bg-raised:#181b22;
+  --bg-overlay:#1e222c;
+  --bg-hover:#232733;
+  --bg-active:#272c38;
+  --border:#2a2f3d;
+  --border-light:#333849;
+  --border-focus:#4f6ef7;
+  --text-primary:#e8eaf0;
+  --text-secondary:#8b90a0;
+  --text-muted:#555b6e;
+  --text-disabled:#3d4255;
+  --accent:#4f6ef7;
+  --accent-hover:#6681f8;
+  --accent-dim:rgba(79,110,247,.12);
+  --accent-glow:rgba(79,110,247,.25);
+  --green:#22c55e;
+  --green-dim:rgba(34,197,94,.12);
+  --red:#ef4444;
+  --red-dim:rgba(239,68,68,.12);
+  --amber:#f59e0b;
+  --amber-dim:rgba(245,158,11,.12);
+  --cyan:#06b6d4;
+  --cyan-dim:rgba(6,182,212,.12);
+  --purple:#a855f7;
+  --purple-dim:rgba(168,85,247,.12);
+  --radius-sm:6px;
+  --radius:10px;
+  --radius-lg:14px;
+  --radius-xl:20px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.4);
+  --shadow:0 4px 16px rgba(0,0,0,.5);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.6);
+  --shadow-glow:0 0 0 1px var(--accent-glow),0 4px 20px rgba(79,110,247,.2);
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono','Fira Code',monospace;
+  --transition:150ms cubic-bezier(.4,0,.2,1);
+  --sidebar-w:240px;
+  --header-h:60px;
+}
+html{font-size:14px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg-base);color:var(--text-primary);min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;font-family:inherit;border:none;outline:none}
+input,select,textarea{font-family:inherit;outline:none}
+ul,ol{list-style:none}
+svg{display:block;flex-shrink:0}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════════════════════════ */
+#app{display:flex;min-height:100vh}
+#login-screen{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;width:100%;
+  background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(79,110,247,.15),transparent);
+}
+.login-card{
+  width:420px;background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-xl);padding:40px;
+  box-shadow:var(--shadow-lg),0 0 60px rgba(79,110,247,.08);
+}
+.login-logo{
+  display:flex;align-items:center;gap:10px;margin-bottom:32px;
+  font-size:20px;font-weight:700;letter-spacing:-.3px;
+}
+.login-logo .logo-icon{
+  width:40px;height:40px;background:var(--accent);border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* SIDEBAR */
+#sidebar{
+  width:var(--sidebar-w);min-height:100vh;background:var(--bg-surface);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;
+  position:fixed;left:0;top:0;z-index:100;
+  transition:transform var(--transition);
+}
+.sidebar-logo{
+  display:flex;align-items:center;gap:10px;padding:18px 20px;
+  font-size:16px;font-weight:700;letter-spacing:-.3px;
+  border-bottom:1px solid var(--border);height:var(--header-h);
+}
+.sidebar-logo .logo-icon{
+  width:32px;height:32px;background:var(--accent);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+}
+.sidebar-nav{flex:1;padding:12px 8px;overflow-y:auto}
+.nav-section-label{
+  font-size:10px;font-weight:600;letter-spacing:.08em;
+  color:var(--text-muted);text-transform:uppercase;
+  padding:12px 12px 6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-radius:var(--radius-sm);color:var(--text-secondary);
+  font-size:13.5px;font-weight:500;cursor:pointer;
+  transition:all var(--transition);margin-bottom:1px;
+  border:1px solid transparent;
+}
+.nav-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+.nav-item.active{
+  background:var(--accent-dim);color:var(--accent);
+  border-color:rgba(79,110,247,.2);
+}
+.nav-item .badge{
+  margin-left:auto;background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;min-width:18px;text-align:center;
+}
+.sidebar-footer{
+  padding:16px 12px;border-top:1px solid var(--border);
+}
+.user-card{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;
+  border-radius:var(--radius);cursor:pointer;
+  transition:background var(--transition);
+}
+.user-card:hover{background:var(--bg-hover)}
+.user-avatar{
+  width:32px;height:32px;border-radius:50%;background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.user-name{font-size:13px;font-weight:600}
+.user-email{font-size:11px;color:var(--text-muted);margin-top:1px}
+
+/* MAIN */
+#main{
+  margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;
+  min-height:100vh;
+}
+#topbar{
+  height:var(--header-h);background:var(--bg-surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;position:sticky;top:0;z-index:50;
+}
+.topbar-left{display:flex;align-items:center;gap:16px}
+.topbar-title{font-size:16px;font-weight:700;letter-spacing:-.2px}
+.topbar-subtitle{font-size:12px;color:var(--text-secondary)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+
+/* CONTENT */
+#content{flex:1;padding:24px 28px;overflow-y:auto}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: BUTTON
+═══════════════════════════════════════════════════════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 16px;
+  border-radius:var(--radius-sm);font-size:13px;font-weight:600;
+  transition:all var(--transition);white-space:nowrap;
+}
+.btn-primary{background:var(--accent);color:#fff;border:1px solid transparent}
+.btn-primary:hover{background:var(--accent-hover);box-shadow:var(--shadow-glow)}
+.btn-secondary{background:var(--bg-raised);color:var(--text-primary);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--bg-hover);border-color:var(--border-light)}
+.btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid transparent;padding:7px 12px}
+.btn-ghost:hover{background:var(--bg-raised);color:var(--text-primary)}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-success{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.btn-icon{padding:7px;border-radius:var(--radius-sm)}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn:disabled{opacity:.4;pointer-events:none}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: FORM
+═══════════════════════════════════════════════════════════════════════════ */
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.02em}
+.form-control{
+  width:100%;background:var(--bg-raised);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:9px 12px;
+  color:var(--text-primary);font-size:13.5px;
+  transition:border-color var(--transition),box-shadow var(--transition);
+}
+.form-control:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px var(--accent-dim)}
+.form-control::placeholder{color:var(--text-muted)}
+.form-control-sm{padding:6px 10px;font-size:12.5px}
+select.form-control{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b90a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.form-hint{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: CARD
+═══════════════════════════════════════════════════════════════════════════ */
+.card{
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);overflow:hidden;
+}
+.card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px;border-bottom:1px solid var(--border);
+}
+.card-title{font-size:15px;font-weight:700;letter-spacing:-.2px}
+.card-subtitle{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.card-body{padding:22px}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: STAT CARDS
+═══════════════════════════════════════════════════════════════════════════ */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:20px;
+  transition:all var(--transition);cursor:default;position:relative;overflow:hidden;
+}
+.stat-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,var(--stat-color-a,.08) 0%,transparent 60%);
+  pointer-events:none;
+}
+.stat-card:hover{border-color:var(--border-light);box-shadow:var(--shadow)}
+.stat-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.stat-icon{
+  width:40px;height:40px;border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+}
+.stat-trend{
+  display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;
+  padding:3px 8px;border-radius:99px;
+}
+.stat-trend.up{background:var(--green-dim);color:var(--green)}
+.stat-trend.down{background:var(--red-dim);color:var(--red)}
+.stat-trend.neutral{background:var(--bg-raised);color:var(--text-secondary)}
+.stat-value{font-size:28px;font-weight:800;letter-spacing:-.5px;line-height:1}
+.stat-label{font-size:12px;color:var(--text-secondary);margin-top:5px;font-weight:500}
+.stat-sub{font-size:11px;color:var(--text-muted);margin-top:3px}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: TABLE
+═══════════════════════════════════════════════════════════════════════════ */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-muted);padding:10px 16px;text-align:left;
+  background:var(--bg-raised);border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+thead th.sortable{cursor:pointer;user-select:none}
+thead th.sortable:hover{color:var(--text-secondary)}
+thead th.sorted{color:var(--accent)}
+tbody tr{border-bottom:1px solid var(--border);transition:background var(--transition)}
+tbody tr:hover{background:var(--bg-hover)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:12px 16px;font-size:13.5px;vertical-align:middle}
+.td-mono{font-family:var(--mono);font-size:12.5px;color:var(--text-secondary)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: BADGE
+═══════════════════════════════════════════════════════════════════════════ */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:99px;
+  font-size:11px;font-weight:600;white-space:nowrap;
+}
+.badge-blue{background:var(--accent-dim);color:var(--accent)}
+.badge-green{background:var(--green-dim);color:var(--green)}
+.badge-red{background:var(--red-dim);color:var(--red)}
+.badge-amber{background:var(--amber-dim);color:var(--amber)}
+.badge-cyan{background:var(--cyan-dim);color:var(--cyan)}
+.badge-purple{background:var(--purple-dim);color:var(--purple)}
+.badge-gray{background:var(--bg-raised);color:var(--text-secondary)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: PROGRESS BAR
+═══════════════════════════════════════════════════════════════════════════ */
+.progress{height:6px;background:var(--bg-overlay);border-radius:99px;overflow:hidden}
+.progress-bar{height:100%;border-radius:99px;transition:width .6s ease}
+.progress-green .progress-bar{background:var(--green)}
+.progress-amber .progress-bar{background:var(--amber)}
+.progress-red .progress-bar{background:var(--red)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: SEARCH + FILTERS BAR
+═══════════════════════════════════════════════════════════════════════════ */
+.toolbar{
+  display:flex;align-items:center;gap:10px;
+  padding:16px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap;
+}
+.search-wrap{position:relative;flex:1;min-width:200px}
+.search-wrap .search-icon{
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  color:var(--text-muted);pointer-events:none;
+}
+.search-wrap input{
+  width:100%;background:var(--bg-raised);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:8px 12px 8px 34px;
+  color:var(--text-primary);font-size:13px;
+  transition:border-color var(--transition);
+}
+.search-wrap input:focus{border-color:var(--border-focus);background:var(--bg-overlay)}
+.search-wrap input::placeholder{color:var(--text-muted)}
+.filter-select{
+  background:var(--bg-raised);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:8px 30px 8px 12px;
+  color:var(--text-primary);font-size:13px;
+  appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b90a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+  cursor:pointer;transition:border-color var(--transition);
+}
+.filter-select:focus{border-color:var(--border-focus)}
+.toolbar-divider{width:1px;height:24px;background:var(--border);flex-shrink:0}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: PAGINATION
+═══════════════════════════════════════════════════════════════════════════ */
+.pagination{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 22px;border-top:1px solid var(--border);
+}
+.pagination-info{font-size:12.5px;color:var(--text-secondary)}
+.pagination-controls{display:flex;align-items:center;gap:4px}
+.page-btn{
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);background:transparent;color:var(--text-secondary);
+  border:1px solid transparent;font-size:12.5px;font-weight:600;cursor:pointer;
+  transition:all var(--transition);
+}
+.page-btn:hover{background:var(--bg-raised);color:var(--text-primary)}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.page-btn:disabled{opacity:.3;pointer-events:none}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:1000;display:flex;align-items:center;justify-content:center;
+  padding:24px;backdrop-filter:blur(4px);
+  opacity:0;pointer-events:none;transition:opacity var(--transition);
+}
+.modal-backdrop.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-xl);width:100%;max-width:600px;
+  max-height:90vh;display:flex;flex-direction:column;
+  box-shadow:var(--shadow-lg);
+  transform:scale(.96) translateY(8px);transition:transform var(--transition);
+}
+.modal-backdrop.open .modal{transform:scale(1) translateY(0)}
+.modal-lg{max-width:800px}
+.modal-xl{max-width:1000px}
+.modal-sm{max-width:440px}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px;border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);background:transparent;
+  color:var(--text-secondary);cursor:pointer;transition:all var(--transition);
+}
+.modal-close:hover{background:var(--bg-raised);color:var(--text-primary)}
+.modal-body{padding:24px;overflow-y:auto;flex:1}
+.modal-footer{
+  display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  padding:16px 24px;border-top:1px solid var(--border);flex-shrink:0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: TABS
+═══════════════════════════════════════════════════════════════════════════ */
+.tabs{display:flex;gap:2px;padding:4px;background:var(--bg-raised);border-radius:var(--radius);width:fit-content}
+.tab-btn{
+  padding:7px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;
+  color:var(--text-secondary);background:transparent;cursor:pointer;
+  transition:all var(--transition);border:none;
+}
+.tab-btn:hover{color:var(--text-primary)}
+.tab-btn.active{background:var(--bg-surface);color:var(--text-primary);box-shadow:var(--shadow-sm)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: ALERT / NOTIFICATION
+═══════════════════════════════════════════════════════════════════════════ */
+.alert{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:14px 18px;border-radius:var(--radius);
+  border:1px solid;margin-bottom:16px;font-size:13.5px;
+}
+.alert-info{background:var(--accent-dim);border-color:rgba(79,110,247,.3);color:var(--accent)}
+.alert-success{background:var(--green-dim);border-color:rgba(34,197,94,.3);color:var(--green)}
+.alert-warning{background:var(--amber-dim);border-color:rgba(245,158,11,.3);color:var(--amber)}
+.alert-danger{background:var(--red-dim);border-color:rgba(239,68,68,.3);color:var(--red)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: TOAST NOTIFICATION
+═══════════════════════════════════════════════════════════════════════════ */
+#toast-container{
+  position:fixed;top:20px;right:20px;z-index:9999;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg-overlay);border:1px solid var(--border);
+  border-radius:var(--radius);padding:12px 16px;min-width:280px;max-width:400px;
+  box-shadow:var(--shadow-lg);pointer-events:all;
+  animation:toastIn .2s ease;font-size:13px;font-weight:500;
+}
+.toast.removing{animation:toastOut .2s ease forwards}
+.toast-success{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.05)}
+.toast-error{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.05)}
+.toast-warning{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.05)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS: LOADING / SKELETON
+═══════════════════════════════════════════════════════════════════════════ */
+.loading-row td{padding:40px;text-align:center;color:var(--text-muted)}
+.spinner{
+  width:20px;height:20px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .7s linear infinite;display:inline-block;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.skeleton{
+  background:linear-gradient(90deg,var(--bg-raised) 25%,var(--bg-overlay) 50%,var(--bg-raised) 75%);
+  background-size:400% 100%;animation:shimmer 1.5s infinite;
+  border-radius:4px;
+}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.skeleton-text{height:12px;margin-bottom:6px}
+.skeleton-row{height:44px;margin-bottom:2px}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: DASHBOARD / OVERVIEW
+═══════════════════════════════════════════════════════════════════════════ */
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.page-header p{font-size:13px;color:var(--text-secondary);margin-top:4px}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted);margin-bottom:8px}
+.breadcrumb-sep{color:var(--text-disabled)}
+
+/* chart-like bars */
+.mini-bars{display:flex;align-items:flex-end;gap:3px;height:40px}
+.mini-bar{flex:1;background:var(--accent-dim);border-radius:3px 3px 0 0;min-height:4px;transition:height .5s ease}
+.mini-bar:hover{background:var(--accent)}
+
+/* sparkline */
+.sparkline{display:flex;align-items:flex-end;gap:2px;height:32px}
+.spark-bar{flex:1;border-radius:2px 2px 0 0}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: PRODUCT DETAIL PANEL
+═══════════════════════════════════════════════════════════════════════════ */
+.detail-panel{
+  position:fixed;right:0;top:0;bottom:0;width:480px;
+  background:var(--bg-surface);border-left:1px solid var(--border);
+  z-index:200;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);
+  box-shadow:-8px 0 32px rgba(0,0,0,.4);
+}
+.detail-panel.open{transform:translateX(0)}
+.detail-panel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.detail-panel-body{flex:1;overflow-y:auto;padding:24px}
+.detail-panel-footer{
+  padding:16px 24px;border-top:1px solid var(--border);
+  display:flex;gap:10px;flex-shrink:0;
+}
+.product-image-placeholder{
+  width:100%;height:160px;background:var(--bg-raised);
+  border-radius:var(--radius);display:flex;align-items:center;justify-content:center;
+  margin-bottom:20px;border:1px solid var(--border);
+  color:var(--text-muted);
+}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:12px;color:var(--text-secondary);font-weight:500}
+.info-value{font-size:13.5px;font-weight:600}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION: STOCK HEATMAP
+═══════════════════════════════════════════════════════════════════════════ */
+.heatmap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px}
+.heatmap-cell{
+  padding:12px 8px;border-radius:var(--radius-sm);text-align:center;
+  border:1px solid var(--border);transition:all var(--transition);cursor:pointer;
+}
+.heatmap-cell:hover{transform:scale(1.04)}
+.heatmap-cell .cell-val{font-size:18px;font-weight:800;line-height:1}
+.heatmap-cell .cell-lbl{font-size:10px;color:var(--text-muted);margin-top:4px}
+.heatmap-high{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3)}
+.heatmap-med{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.25)}
+.heatmap-low{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}
+.heatmap-zero{background:var(--bg-raised);border-color:var(--border)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION: MOVE TIMELINE
+═══════════════════════════════════════════════════════════════════════════ */
+.timeline{display:flex;flex-direction:column;gap:0}
+.timeline-item{display:flex;gap:14px;padding:12px 0;position:relative}
+.timeline-item::before{
+  content:'';position:absolute;left:15px;top:36px;bottom:0;
+  width:1px;background:var(--border);
+}
+.timeline-item:last-child::before{display:none}
+.timeline-dot{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid;z-index:1;background:var(--bg-surface);
+}
+.timeline-dot.in{border-color:var(--green);color:var(--green)}
+.timeline-dot.out{border-color:var(--red);color:var(--red)}
+.timeline-dot.transfer{border-color:var(--cyan);color:var(--cyan)}
+.timeline-content{flex:1;min-width:0}
+.timeline-title{font-size:13.5px;font-weight:600}
+.timeline-meta{font-size:11.5px;color:var(--text-secondary);margin-top:2px}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION: LOW STOCK ALERTS
+═══════════════════════════════════════════════════════════════════════════ */
+.alert-card{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 18px;background:var(--bg-surface);
+  border:1px solid var(--border);border-radius:var(--radius);
+  transition:all var(--transition);cursor:pointer;
+}
+.alert-card:hover{border-color:var(--amber);box-shadow:0 0 0 1px rgba(245,158,11,.2)}
+.alert-card.critical{border-color:rgba(239,68,68,.3)}
+.alert-card.critical:hover{border-color:var(--red)}
+.alert-icon{
+  width:40px;height:40px;border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.alert-icon.warning{background:var(--amber-dim);color:var(--amber)}
+.alert-icon.danger{background:var(--red-dim);color:var(--red)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION: WAREHOUSE MAP
+═══════════════════════════════════════════════════════════════════════════ */
+.warehouse-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.warehouse-card{
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:20px;
+  transition:all var(--transition);
+}
+.warehouse-card:hover{border-color:var(--border-light);box-shadow:var(--shadow)}
+.wh-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.wh-name{font-size:15px;font-weight:700}
+.wh-code{font-family:var(--mono);font-size:11.5px;color:var(--text-secondary);margin-top:2px}
+.wh-stat{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.wh-stat-label{font-size:12px;color:var(--text-secondary);flex:1}
+.wh-stat-value{font-size:13px;font-weight:700}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CATEGORY CARD
+═══════════════════════════════════════════════════════════════════════════ */
+.category-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.cat-card{
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:18px;
+  transition:all var(--transition);cursor:pointer;
+}
+.cat-card:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-dim)}
+.cat-icon{
+  width:40px;height:40px;border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:12px;
+}
+.cat-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.cat-desc{font-size:12px;color:var(--text-secondary);line-height:1.4}
+.cat-count{
+  display:inline-flex;align-items:center;gap:4px;margin-top:10px;
+  font-size:11px;font-weight:600;color:var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STOCK VALUE GAUGE
+═══════════════════════════════════════════════════════════════════════════ */
+.gauge-wrap{display:flex;align-items:center;gap:20px}
+.gauge-circle{position:relative;width:90px;height:90px;flex-shrink:0}
+.gauge-circle svg{transform:rotate(-90deg)}
+.gauge-text{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;
+}
+.gauge-pct{font-size:18px;font-weight:800}
+.gauge-label{font-size:10px;color:var(--text-muted)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRODUCT SKU INLINE TAG
+═══════════════════════════════════════════════════════════════════════════ */
+.sku-tag{
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  background:var(--bg-overlay);color:var(--text-secondary);
+  padding:2px 7px;border-radius:4px;border:1px solid var(--border);
+}
+
+/* Product image thumb */
+.product-thumb{
+  width:36px;height:36px;background:var(--bg-raised);border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-muted);border:1px solid var(--border);flex-shrink:0;
+}
+
+/* Stock quantity indicator */
+.qty-wrap{display:flex;flex-direction:column;gap:4px;min-width:100px}
+.qty-value{font-size:14px;font-weight:700}
+.qty-reorder{font-size:11px;color:var(--text-secondary)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION: BATCH LIST
+═══════════════════════════════════════════════════════════════════════════ */
+.batch-card{
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px;
+  transition:all var(--transition);
+}
+.batch-card:hover{border-color:var(--border-light)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════════════════════════════ */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 20px;color:var(--text-muted);text-align:center;
+}
+.empty-state h3{font-size:15px;font-weight:600;margin-top:16px;color:var(--text-secondary)}
+.empty-state p{font-size:13px;margin-top:6px;max-width:320px;line-height:1.5}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION: KPI RING CHART (pure CSS + SVG)
+═══════════════════════════════════════════════════════════════════════════ */
+.ring-chart{position:relative;display:inline-flex}
+.ring-chart-center{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;pointer-events:none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VERTICAL DIVIDER
+═══════════════════════════════════════════════════════════════════════════ */
+.vdivider{width:1px;background:var(--border);align-self:stretch}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════════════════════ */
+@media(max-width:1200px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .warehouse-grid{grid-template-columns:1fr}
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mobile-open{transform:translateX(0)}
+  #main{margin-left:0}
+}
+@media(max-width:600px){.stats-grid{grid-template-columns:1fr}}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION SWITCHER ANIMATION
+═══════════════════════════════════════════════════════════════════════════ */
+.page-section{display:none;animation:fadeUp .2s ease}
+.page-section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* dropdown */
+.dropdown-menu{
+  position:absolute;top:calc(100% + 6px);right:0;z-index:300;
+  background:var(--bg-overlay);border:1px solid var(--border);
+  border-radius:var(--radius);padding:4px;min-width:160px;
+  box-shadow:var(--shadow-lg);display:none;
+}
+.dropdown-menu.open{display:block}
+.dropdown-item{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;
+  border-radius:var(--radius-sm);font-size:13px;font-weight:500;
+  color:var(--text-secondary);cursor:pointer;transition:all var(--transition);
+}
+.dropdown-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+.dropdown-item.danger{color:var(--red)}
+.dropdown-item.danger:hover{background:var(--red-dim)}
+.dropdown-wrap{position:relative}
+
+/* inline delete confirm */
+.confirm-row{
+  background:var(--red-dim);border:1px solid rgba(239,68,68,.3);
+  border-radius:var(--radius-sm);padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:13px;gap:12px;
+}
+</style>
+</head>
+<body>
+
+<!-- ─────────────────────────────────────────────────────────────
+     TOAST CONTAINER
+───────────────────────────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     LOGIN SCREEN
+───────────────────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      GoERP
+    </div>
+    <div style="margin-bottom:24px">
+      <div style="font-size:20px;font-weight:800;margin-bottom:6px">Inventory Command Center</div>
+      <div style="font-size:13px;color:var(--text-secondary)">Sign in to access your inventory management system</div>
+    </div>
+    <div id="login-error" class="alert alert-danger" style="display:none">
+      <svg width="16" height="16" id="lucide-alert-triangle" style="flex-shrink:0"></svg>
+      <span id="login-error-msg">Invalid credentials</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input id="login-email" type="email" class="form-control" placeholder="admin@goerp.io" value="admin@goerp.io" />
+    </div>
+    <div class="form-group" style="margin-bottom:24px">
+      <label class="form-label">Password</label>
+      <input id="login-pass" type="password" class="form-control" placeholder="••••••••" value="admin123" />
+    </div>
+    <button id="login-btn" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">
+      <svg width="16" height="16" id="lucide-log-in"></svg>
+      Sign In
+    </button>
+    <div style="margin-top:16px;text-align:center;font-size:12px;color:var(--text-muted)">
+      Demo: admin@goerp.io / admin123
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     MAIN APP (hidden until login)
+───────────────────────────────────────────────────────────────── -->
+<div id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      GoERP
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Inventory</div>
+      <div class="nav-item active" data-section="overview" onclick="switchSection('overview')">
+        <svg width="16" height="16" id="lucide-layout-dashboard"></svg>Overview
+      </div>
+      <div class="nav-item" data-section="products" onclick="switchSection('products')">
+        <svg width="16" height="16" id="lucide-package"></svg>Products
+      </div>
+      <div class="nav-item" data-section="categories" onclick="switchSection('categories')">
+        <svg width="16" height="16" id="lucide-tag"></svg>Categories
+      </div>
+      <div class="nav-item" data-section="warehouses" onclick="switchSection('warehouses')">
+        <svg width="16" height="16" id="lucide-warehouse"></svg>Warehouses
+      </div>
+      <div class="nav-item" data-section="locations" onclick="switchSection('locations')">
+        <svg width="16" height="16" id="lucide-map-pin"></svg>Locations
+      </div>
+      <div class="nav-item" data-section="moves" onclick="switchSection('moves')">
+        <svg width="16" height="16" id="lucide-arrow-left-right"></svg>Stock Moves
+      </div>
+      <div class="nav-item" data-section="batches" onclick="switchSection('batches')">
+        <svg width="16" height="16" id="lucide-layers"></svg>Batches
+      </div>
+      <div class="nav-item" data-section="alerts" onclick="switchSection('alerts')">
+        <svg width="16" height="16" id="lucide-bell"></svg>Low Stock
+        <span class="badge" id="alert-badge" style="display:none">0</span>
+      </div>
+      <div class="nav-item" data-section="valuation" onclick="switchSection('valuation')">
+        <svg width="16" height="16" id="lucide-trending-up"></svg>Valuation
+      </div>
+      <div class="nav-section-label" style="margin-top:8px">Operations</div>
+      <div class="nav-item" onclick="openStockAdjModal()">
+        <svg width="16" height="16" id="lucide-sliders-horizontal"></svg>Adjust Stock
+      </div>
+      <div class="nav-item" onclick="openTransferModal()">
+        <svg width="16" height="16" id="lucide-truck"></svg>Transfer
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card" onclick="handleLogout()">
+        <div class="user-avatar" id="user-avatar">SA</div>
+        <div>
+          <div class="user-name" id="user-name">System Admin</div>
+          <div class="user-email" id="user-email">admin@goerp.io</div>
+        </div>
+        <svg width="14" height="14" id="lucide-log-out" style="margin-left:auto;color:var(--text-muted)"></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div id="main">
+    <!-- TOPBAR -->
+    <header id="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title" id="topbar-title">Inventory Overview</div>
+          <div class="topbar-subtitle" id="topbar-subtitle">Real-time inventory intelligence</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-ghost btn-icon" onclick="refreshCurrentSection()" title="Refresh">
+          <svg width="16" height="16" id="lucide-refresh-cw"></svg>
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="openProductModal()">
+          <svg width="14" height="14" id="lucide-plus"></svg>
+          New Product
+        </button>
+        <div style="width:1px;height:24px;background:var(--border)"></div>
+        <button class="btn btn-secondary btn-sm" onclick="openStockMoveModal()">
+          <svg width="14" height="14" id="lucide-plus-circle"></svg>
+          Stock Move
+        </button>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <div id="content">
+
+      <!-- ══════════════════════════════════ OVERVIEW ══════════════════════════════════ -->
+      <section id="section-overview" class="page-section active">
+        <div class="page-header">
+          <div class="breadcrumb">
+            <span>Inventory</span><span class="breadcrumb-sep">/</span><span style="color:var(--text-primary)">Overview</span>
+          </div>
+          <h1>Inventory Command Center</h1>
+          <p>Real-time visibility across all products, warehouses, and stock movements</p>
+        </div>
+
+        <!-- KPI STATS -->
+        <div class="stats-grid" id="overview-stats">
+          <div class="stat-card" style="--stat-color-a:rgba(79,110,247,.08)">
+            <div class="stat-card-header">
+              <div class="stat-icon" style="background:var(--accent-dim)"><svg width="20" height="20" id="lucide-package-2" style="color:var(--accent)"></svg></div>
+              <span class="stat-trend neutral" id="stat-products-trend">— —</span>
+            </div>
+            <div class="stat-value" id="stat-total-products">—</div>
+            <div class="stat-label">Total Products</div>
+            <div class="stat-sub" id="stat-active-products">— active SKUs</div>
+          </div>
+          <div class="stat-card" style="--stat-color-a:rgba(34,197,94,.08)">
+            <div class="stat-card-header">
+              <div class="stat-icon" style="background:var(--green-dim)"><svg width="20" height="20" id="lucide-dollar-sign" style="color:var(--green)"></svg></div>
+              <span class="stat-trend up" id="stat-value-trend">Live</span>
+            </div>
+            <div class="stat-value" id="stat-stock-value">—</div>
+            <div class="stat-label">Stock Value</div>
+            <div class="stat-sub" id="stat-value-sub">at cost price</div>
+          </div>
+          <div class="stat-card" style="--stat-color-a:rgba(245,158,11,.08)">
+            <div class="stat-card-header">
+              <div class="stat-icon" style="background:var(--amber-dim)"><svg width="20" height="20" id="lucide-alert-triangle" style="color:var(--amber)"></svg></div>
+              <span class="stat-trend down" id="stat-alert-trend">Needs Action</span>
+            </div>
+            <div class="stat-value" id="stat-low-stock">—</div>
+            <div class="stat-label">Low Stock Items</div>
+            <div class="stat-sub">below reorder point</div>
+          </div>
+          <div class="stat-card" style="--stat-color-a:rgba(6,182,212,.08)">
+            <div class="stat-card-header">
+              <div class="stat-icon" style="background:var(--cyan-dim)"><svg width="20" height="20" id="lucide-activity" style="color:var(--cyan)"></svg></div>
+              <span class="stat-trend neutral">34 moves</span>
+            </div>
+            <div class="stat-value" id="stat-warehouses">—</div>
+            <div class="stat-label">Warehouses</div>
+            <div class="stat-sub" id="stat-locations-sub">— locations total</div>
+          </div>
+        </div>
+
+        <!-- ROW: CATEGORY BREAKDOWN + RECENT MOVES -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+
+          <!-- CATEGORY BREAKDOWN -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Category Breakdown</div>
+                <div class="card-subtitle">Products per category</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="switchSection('categories')">
+                <svg width="12" height="12" id="lucide-arrow-right"></svg> View all
+              </button>
+            </div>
+            <div class="card-body" style="padding:16px 22px">
+              <div id="category-breakdown">
+                <div style="text-align:center;color:var(--text-muted);padding:20px"><div class="spinner"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RECENT STOCK MOVES -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Recent Movements</div>
+                <div class="card-subtitle">Latest stock activity</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="switchSection('moves')">
+                <svg width="12" height="12" id="lucide-arrow-right-2"></svg> View all
+              </button>
+            </div>
+            <div class="card-body" style="padding:0">
+              <div id="recent-moves" style="max-height:280px;overflow-y:auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW: WAREHOUSE STOCK + LOW STOCK ALERTS -->
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+          <!-- WAREHOUSE SUMMARY -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Warehouse Status</div>
+                <div class="card-subtitle">Current inventory by location</div>
+              </div>
+            </div>
+            <div class="card-body" style="padding:16px">
+              <div class="warehouse-grid" id="overview-warehouses"></div>
+            </div>
+          </div>
+
+          <!-- LOW STOCK PANEL -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title" style="display:flex;align-items:center;gap:8px">
+                  Low Stock
+                  <span class="badge badge-amber" id="low-stock-count-badge">0</span>
+                </div>
+                <div class="card-subtitle">Requires immediate attention</div>
+              </div>
+            </div>
+            <div class="card-body" style="padding:12px;max-height:320px;overflow-y:auto">
+              <div id="low-stock-panel" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ PRODUCTS ══════════════════════════════════ -->
+      <section id="section-products" class="page-section">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div class="breadcrumb"><span>Inventory</span><span class="breadcrumb-sep">/</span><span style="color:var(--text-primary)">Products</span></div>
+            <h1>Products</h1>
+            <p>Manage your complete product catalog with real-time stock levels</p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-secondary" onclick="exportProducts()">
+              <svg width="14" height="14" id="lucide-download"></svg>Export
+            </button>
+            <button class="btn btn-primary" onclick="openProductModal()">
+              <svg width="14" height="14" id="lucide-plus-2"></svg>Add Product
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <!-- TOOLBAR -->
+          <div class="toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" id="lucide-search" class="search-icon"></svg>
+              <input type="text" placeholder="Search by name, SKU, barcode..." id="product-search" oninput="filterProducts()" />
+            </div>
+            <select class="filter-select" id="product-cat-filter" onchange="filterProducts()">
+              <option value="">All Categories</option>
+            </select>
+            <select class="filter-select" id="product-status-filter" onchange="filterProducts()">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <select class="filter-select" id="product-stock-filter" onchange="filterProducts()">
+              <option value="">All Stock</option>
+              <option value="low">Low Stock</option>
+              <option value="out">Out of Stock</option>
+              <option value="ok">In Stock</option>
+            </select>
+            <div class="toolbar-divider"></div>
+            <div style="font-size:12.5px;color:var(--text-secondary)" id="product-count-label">— products</div>
+          </div>
+
+          <!-- TABLE -->
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px"><input type="checkbox" id="select-all-products" onchange="toggleSelectAll(this)" style="cursor:pointer"></th>
+                  <th class="sortable" onclick="sortProducts('name')">Product <span id="sort-name-icon"></span></th>
+                  <th>SKU / Barcode</th>
+                  <th class="sortable" onclick="sortProducts('qty_on_hand')">On Hand <span id="sort-qty-icon"></span></th>
+                  <th>Reorder Point</th>
+                  <th class="sortable" onclick="sortProducts('cost_price')">Cost <span id="sort-cost-icon"></span></th>
+                  <th class="sortable" onclick="sortProducts('sale_price')">Sale Price <span id="sort-price-icon"></span></th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th style="width:100px">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="products-tbody">
+                <tr class="loading-row"><td colspan="10"><div class="spinner"></div> Loading products...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="products-pagination"></div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ CATEGORIES ══════════════════════════════════ -->
+      <section id="section-categories" class="page-section">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div class="breadcrumb"><span>Inventory</span><span class="breadcrumb-sep">/</span><span style="color:var(--text-primary)">Categories</span></div>
+            <h1>Categories</h1>
+            <p>Organize products into logical groupings</p>
+          </div>
+          <button class="btn btn-primary" onclick="openCategoryModal()">
+            <svg width="14" height="14" id="lucide-plus-3"></svg>Add Category
+          </button>
+        </div>
+        <div class="category-grid" id="categories-grid">
+          <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)"><div class="spinner"></div></div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ WAREHOUSES ══════════════════════════════════ -->
+      <section id="section-warehouses" class="page-section">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div class="breadcrumb"><span>Inventory</span><span class="breadcrumb-sep">/</span><span style="color:var(--text-primary)">Warehouses</span></div>
+            <h1>Warehouses</h1>
+            <p>Physical storage facilities and their status</p>
+          </div>
+          <button class="btn btn-primary" onclick="openWarehouseModal()">
+            <svg width="14" height="14" id="lucide-plus-4"></svg>Add Warehouse
+          </button>
+        </div>
+        <div class="warehouse-grid" id="warehouses-grid" style="margin-bottom:24px"></div>
+
+        <!-- LOCATIONS TABLE -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">All Locations</div>
+              <div class="card-subtitle">Storage zones, racks and shelves</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="openLocationModal()">
+              <svg width="13" height="13" id="lucide-plus-5"></svg>Add Location
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Code</th>
+                  <th>Warehouse</th>
+                  <th>Type</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="locations-tbody">
+                <tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ LOCATIONS ══════════════════════════════════ -->
+      <section id="section-locations" class="page-section">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div class="breadcrumb"><span>Inventory</span><span class="breadcrumb-sep">/</span><span style="color:var(--text-primary)">Locations</span></div>
+            <h1>Stock Locations</h1>
+            <p>All storage locations across all warehouses</p>
+          </div>
+          <button class="btn btn-primary" onclick="openLocationModal()">
+            <svg width="14" height="14" id="lucide-plus-6"></svg>Add Location
+          </button>
+        </div>
+        <div class="card">
+          <div class="toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" id="lucide-search-2" class="search-icon"></svg>
+              <input type="text" placeholder="Search locations..." id="location-search" oninput="filterLocations()" />
+            </div>
+            <select class="filter-select" id="location-wh-filter" onchange="filterLocations()">
+              <option value="">All Warehouses</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th><th>Code</th><th>Warehouse</th><th>Type</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="locations-all-tbody">
+                <tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ STOCK MOVES ══════════════════════════════════ -->
+      <section id="section-moves" class="page-section">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div class="breadcrumb"><span>Inventory</span><span class="breadcrumb-sep">/</span><span style="color:var(--text-primary)">Stock Moves</span></div>
+            <h1>Stock Movements</h1>
+            <p>Complete audit trail of all inventory transactions</p>
+          </div>
+          <button class="btn btn-primary" onclick="openStockMoveModal()">
+            <svg width="14" height="14" id="lucide-plus-7"></svg>New Move
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" id="lucide-search-3" class="search-icon"></svg>
+              <input type="text" placeholder="Search by product, reference..." id="move-search" oninput="filterMoves()" />
+            </div>
+            <select class="filter-select" id="move-type-filter" onchange="filterMoves()">
+              <option value="">All Types</option>
+              <option value="in">Incoming</option>
+              <option value="out">Outgoing</option>
+              <option value="transfer">Transfer</option>
+              <option value="adjustment">Adjustment</option>
+            </select>
+            <select class="filter-select" id="move-state-filter" onchange="filterMoves()">
+              <option value="">All States</option>
+              <option value="done">Done</option>
+              <option value="pending">Pending</option>
+              <option value="draft">Draft</option>
+            </select>
+            <div class="toolbar-divider"></div>
+            <div style="font-size:12.5px;color:var(--text-secondary)" id="move-count-label">— moves</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Reference</th>
+                  <th>Total Cost</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody id="moves-tbody">
+                <tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="moves-pagination"></div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ BATCHES ══════════════════════════════════ -->
+      <section id="section-batches" class="page-section">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div class="breadcrumb"><span>Inventory</span><span class="breadcrumb-sep">/</span><span style="color:var(--text-primary)">Batches</span></div>
+            <h1>Batch / Lot Tracking</h1>
+            <p>Track products by batch number, expiry and serial</p>
+          </div>
+          <button class="btn btn-primary" onclick="openBatchModal()">
+            <svg width="14" height="14" id="lucide-plus-8"></svg>New Batch
+          </button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Batch Number</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Expiry Date</th>
+                  <th>State</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="batches-tbody">
+                <tr class="loading-row"><td colspan="6"><div class="spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ ALERTS ══════════════════════════════════ -->
+      <section id="section-alerts" class="page-section">
+        <div class="page-header">
+          <div class="breadcrumb"><span>Inventory</span><span class="breadcrumb-sep">/</span><span style="color:var(--text-primary)">Low Stock Alerts</span></div>
+          <h1>Low Stock Alerts</h1>
+          <p>Products that require restocking attention</p>
+        </div>
+        <div id="alerts-container" style="display:flex;flex-direction:column;gap:10px"></div>
+      </section>
+
+      <!-- ══════════════════════════════════ VALUATION ══════════════════════════════════ -->
+      <section id="section-valuation" class="page-section">
+        <div class="page-header">
+          <div class="breadcrumb"><span>Inventory</span><span class="breadcrumb-sep">/</span><span style="color:var(--text-primary)">Valuation</span></div>
+          <h1>Stock Valuation</h1>
+          <p>Financial snapshot of your inventory at cost</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px" id="val-stats"></div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Product Valuation Report</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>On Hand</th>
+                  <th>Unit Cost</th>
+                  <th>Total Value</th>
+                  <th>% of Portfolio</th>
+                </tr>
+              </thead>
+              <tbody id="val-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ─────────────────────────────────────────────────────────────
+     PRODUCT DETAIL PANEL (slide-in)
+───────────────────────────────────────────────────────────────── -->
+<div id="product-detail-panel" class="detail-panel">
+  <div class="detail-panel-header">
+    <div>
+      <div style="font-size:16px;font-weight:700" id="detail-product-name">Product</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:2px" id="detail-product-sku"></div>
+    </div>
+    <button class="modal-close" onclick="closeDetailPanel()">
+      <svg width="16" height="16" id="lucide-x-detail"></svg>
+    </button>
+  </div>
+  <div class="detail-panel-body">
+    <div class="product-image-placeholder">
+      <svg width="40" height="40" id="lucide-image" style="opacity:.4"></svg>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+  <div class="detail-panel-footer">
+    <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="editFromDetail()">
+      <svg width="14" height="14" id="lucide-edit-2"></svg> Edit Product
+    </button>
+    <button class="btn btn-secondary" onclick="adjustFromDetail()">
+      <svg width="14" height="14" id="lucide-sliders"></svg> Adjust
+    </button>
+    <button class="btn btn-danger btn-icon" onclick="deleteFromDetail()" title="Delete">
+      <svg width="14" height="14" id="lucide-trash-2-detail"></svg>
+    </button>
+  </div>
+</div>
+<div id="panel-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:190;display:none" onclick="closeDetailPanel()"></div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     MODAL: CREATE / EDIT PRODUCT
+───────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="product-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="product-modal-title">New Product</div>
+      <button class="modal-close" onclick="closeModal('product-modal')"><svg width="16" height="16" id="lucide-x"></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pm-id" />
+      <div class="form-grid-2">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Product Name *</label>
+          <input id="pm-name" type="text" class="form-control" placeholder="e.g. Laptop Pro 15" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">SKU *</label>
+          <input id="pm-sku" type="text" class="form-control" placeholder="e.g. LAPTOP-PRO-15" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Barcode</label>
+          <input id="pm-barcode" type="text" class="form-control" placeholder="EAN / UPC" />
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Description</label>
+          <textarea id="pm-desc" class="form-control" rows="2" placeholder="Product description..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select id="pm-category" class="form-control"><option value="">No category</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit of Measure</label>
+          <input id="pm-uom" type="text" class="form-control" placeholder="e.g. Unit, Box, kg" value="Unit" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cost Price *</label>
+          <input id="pm-cost" type="number" step="0.01" min="0" class="form-control" placeholder="0.00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sale Price</label>
+          <input id="pm-price" type="number" step="0.01" min="0" class="form-control" placeholder="0.00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Initial Quantity</label>
+          <input id="pm-qty" type="number" step="0.01" min="0" class="form-control" placeholder="0" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reorder Point</label>
+          <input id="pm-reorder" type="number" step="0.01" min="0" class="form-control" placeholder="0" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (kg)</label>
+          <input id="pm-weight" type="number" step="0.001" min="0" class="form-control" placeholder="0.000" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select id="pm-status" class="form-control">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('product-modal')">Cancel</button>
+      <button class="btn btn-primary" id="product-save-btn" onclick="saveProduct()">
+        <svg width="14" height="14" id="lucide-save"></svg>Save Product
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     MODAL: CREATE / EDIT CATEGORY
+───────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="category-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title" id="cat-modal-title">New Category</div>
+      <button class="modal-close" onclick="closeModal('category-modal')"><svg width="16" height="16" id="lucide-x-2"></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cat-id" />
+      <div class="form-group">
+        <label class="form-label">Category Name *</label>
+        <input id="cat-name" type="text" class="form-control" placeholder="e.g. Electronics" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea id="cat-desc" class="form-control" rows="3" placeholder="Category description..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('category-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCategory()">
+        <svg width="14" height="14" id="lucide-save-2"></svg>Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     MODAL: CREATE STOCK MOVE
+───────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="stock-move-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Stock Movement</div>
+      <button class="modal-close" onclick="closeModal('stock-move-modal')"><svg width="16" height="16" id="lucide-x-3"></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Move Type *</label>
+        <select id="sm-type" class="form-control" onchange="updateMoveFields()">
+          <option value="in">Incoming (Purchase / Receipt)</option>
+          <option value="out">Outgoing (Sale / Issue)</option>
+          <option value="transfer">Internal Transfer</option>
+          <option value="adjustment">Stock Adjustment</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Product *</label>
+        <select id="sm-product" class="form-control"></select>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Quantity *</label>
+          <input id="sm-qty" type="number" step="0.01" min="0.01" class="form-control" placeholder="0" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit Cost</label>
+          <input id="sm-cost" type="number" step="0.01" min="0" class="form-control" placeholder="0.00" />
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group" id="sm-from-group">
+          <label class="form-label">From Location</label>
+          <select id="sm-from" class="form-control"><option value="">None</option></select>
+        </div>
+        <div class="form-group" id="sm-to-group">
+          <label class="form-label">To Location</label>
+          <select id="sm-to" class="form-control"><option value="">None</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reference</label>
+        <input id="sm-ref" type="text" class="form-control" placeholder="e.g. PO-2026-001" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="sm-notes" class="form-control" rows="2" placeholder="Optional notes..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('stock-move-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStockMove()">
+        <svg width="14" height="14" id="lucide-arrow-right-circle"></svg>Create Move
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     MODAL: STOCK ADJUSTMENT
+───────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="stock-adj-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Stock Adjustment</div>
+      <button class="modal-close" onclick="closeModal('stock-adj-modal')"><svg width="16" height="16" id="lucide-x-4"></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning" style="margin-bottom:16px">
+        <svg width="14" height="14" id="lucide-alert-circle" style="flex-shrink:0"></svg>
+        <span>Adjustments create an audit record. Use for cycle count corrections.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Product *</label>
+        <select id="adj-product" class="form-control"></select>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Adjustment Quantity *</label>
+          <input id="adj-qty" type="number" step="0.01" class="form-control" placeholder="+10 or -5" />
+          <div class="form-hint">Positive = add stock, Negative = remove</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit Cost</label>
+          <input id="adj-cost" type="number" step="0.01" min="0" class="form-control" placeholder="0.00" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason *</label>
+        <select id="adj-reason" class="form-control">
+          <option value="Cycle Count Correction">Cycle Count Correction</option>
+          <option value="Damage Write-off">Damage Write-off</option>
+          <option value="Theft / Shrinkage">Theft / Shrinkage</option>
+          <option value="Expiry Write-off">Expiry Write-off</option>
+          <option value="System Correction">System Correction</option>
+          <option value="Opening Balance">Opening Balance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="adj-notes" class="form-control" rows="2" placeholder="Additional details..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('stock-adj-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAdjustment()">Apply Adjustment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     MODAL: INTERNAL TRANSFER
+───────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="transfer-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Internal Transfer</div>
+      <button class="modal-close" onclick="closeModal('transfer-modal')"><svg width="16" height="16" id="lucide-x-5"></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Product *</label>
+        <select id="tr-product" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quantity *</label>
+        <input id="tr-qty" type="number" step="0.01" min="0.01" class="form-control" placeholder="0" />
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">From Location *</label>
+          <select id="tr-from" class="form-control"><option value="">Select...</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">To Location *</label>
+          <select id="tr-to" class="form-control"><option value="">Select...</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reference</label>
+        <input id="tr-ref" type="text" class="form-control" placeholder="e.g. TRANSFER-001" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('transfer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTransfer()">
+        <svg width="14" height="14" id="lucide-move"></svg>Transfer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     MODAL: WAREHOUSE
+───────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="warehouse-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title" id="wh-modal-title">New Warehouse</div>
+      <button class="modal-close" onclick="closeModal('warehouse-modal')"><svg width="16" height="16" id="lucide-x-6"></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="wh-id" />
+      <div class="form-group">
+        <label class="form-label">Warehouse Name *</label>
+        <input id="wh-name" type="text" class="form-control" placeholder="e.g. Main Warehouse" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Code *</label>
+        <input id="wh-code" type="text" class="form-control" placeholder="e.g. WH-001" />
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input id="wh-city" type="text" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Country</label>
+          <input id="wh-country" type="text" class="form-control" placeholder="e.g. US" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Address</label>
+        <input id="wh-address" type="text" class="form-control" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('warehouse-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWarehouse()">
+        <svg width="14" height="14" id="lucide-save-3"></svg>Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     MODAL: LOCATION
+───────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="location-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title" id="loc-modal-title">New Location</div>
+      <button class="modal-close" onclick="closeModal('location-modal')"><svg width="16" height="16" id="lucide-x-7"></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="loc-id" />
+      <div class="form-group">
+        <label class="form-label">Name *</label>
+        <input id="loc-name" type="text" class="form-control" placeholder="e.g. Zone A - Rack 1" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Code *</label>
+        <input id="loc-code" type="text" class="form-control" placeholder="e.g. A-R1" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Warehouse *</label>
+        <select id="loc-warehouse" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select id="loc-type" class="form-control">
+          <option value="internal">Internal</option>
+          <option value="external">External</option>
+          <option value="virtual">Virtual</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('location-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLocation()">
+        <svg width="14" height="14" id="lucide-save-4"></svg>Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     MODAL: BATCH
+───────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="batch-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">New Batch / Lot</div>
+      <button class="modal-close" onclick="closeModal('batch-modal')"><svg width="16" height="16" id="lucide-x-8"></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Batch Number *</label>
+        <input id="batch-num" type="text" class="form-control" placeholder="e.g. BATCH-2026-001" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Product *</label>
+        <select id="batch-product" class="form-control"></select>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Quantity</label>
+          <input id="batch-qty" type="number" step="0.01" min="0" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expiry Date</label>
+          <input id="batch-expiry" type="date" class="form-control" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="batch-notes" class="form-control" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('batch-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBatch()">Save Batch</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     JAVASCRIPT
+───────────────────────────────────────────────────────────────── -->
+<script>
+'use strict';
+// ════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════
+const S = {
+  token: '',
+  user: null,
+  tenant: null,
+  products: [],
+  filteredProducts: [],
+  categories: [],
+  warehouses: [],
+  locations: [],
+  moves: [],
+  filteredMoves: [],
+  batches: [],
+  lowStock: [],
+  currentSection: 'overview',
+  productPage: 1,
+  productPageSize: 15,
+  movePage: 1,
+  movePageSize: 20,
+  sortField: 'name',
+  sortDir: 'asc',
+  selectedProducts: new Set(),
+  detailProduct: null,
+  editProductId: null,
+};
+
+const BASE = window.location.origin;
+
+// ════════════════════════════════════════════════════════════════════
+// API HELPER
+// ════════════════════════════════════════════════════════════════════
+async function api(path, opts = {}) {
+  const url = `${BASE}/api/v1${path}`;
+  const headers = { 'Content-Type': 'application/json' };
+  if (S.token) headers['Authorization'] = `Bearer ${S.token}`;
+  const res = await fetch(url, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { error: text }; }
+  if (!res.ok) {
+    const msg = data?.error || data?.message || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════════════════
+function toast(msg, type = 'success', duration = 3500) {
+  const icons = { success: 'check-circle', error: 'x-circle', warning: 'alert-triangle' };
+  const colors = { success: 'var(--green)', error: 'var(--red)', warning: 'var(--amber)' };
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.innerHTML = `<svg width="16" height="16" style="color:${colors[type]};flex-shrink:0" data-lucide="${icons[type]}"></svg><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  lucide.createIcons({ icons: { [icons[type]]: lucide.icons[icons[type]] }, attrs: {}, nodes: [el] });
+  setTimeout(() => {
+    el.classList.add('removing');
+    setTimeout(() => el.remove(), 200);
+  }, duration);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ════════════════════════════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  lucide.createIcons();
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open')); });
+
+// ════════════════════════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════════════════════════
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const btn = document.getElementById('login-btn');
+  const errDiv = document.getElementById('login-error');
+  const errMsg = document.getElementById('login-error-msg');
+  errDiv.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner"></div> Signing in...`;
+  try {
+    const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password: pass }) });
+    S.token = data.access_token;
+    S.user = data.user;
+    S.tenant = data.tenant;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    updateUserDisplay();
+    initApp();
+  } catch (err) {
+    errMsg.textContent = err.message;
+    errDiv.style.display = 'flex';
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="16" height="16" data-lucide="log-in"></svg> Sign In`;
+    lucide.createIcons();
+  }
+}
+
+function handleLogout() {
+  S.token = '';
+  S.user = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  toast('Signed out successfully', 'success');
+}
+
+function updateUserDisplay() {
+  if (!S.user) return;
+  document.getElementById('user-name').textContent = S.user.full_name || 'User';
+  document.getElementById('user-email').textContent = S.user.email;
+  const parts = (S.user.full_name || 'U').split(' ');
+  document.getElementById('user-avatar').textContent = parts.map(p => p[0]).join('').toUpperCase().slice(0, 2);
+}
+
+document.getElementById('login-btn').addEventListener('click', handleLogin);
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+
+// ════════════════════════════════════════════════════════════════════
+// SECTION SWITCH
+// ════════════════════════════════════════════════════════════════════
+const SECTION_META = {
+  overview:    { title: 'Inventory Overview',      sub: 'Real-time inventory intelligence' },
+  products:    { title: 'Products',                sub: 'Complete product catalog management' },
+  categories:  { title: 'Categories',              sub: 'Product classification' },
+  warehouses:  { title: 'Warehouses & Locations',  sub: 'Physical storage management' },
+  locations:   { title: 'Stock Locations',         sub: 'All storage locations' },
+  moves:       { title: 'Stock Movements',         sub: 'Complete inventory transaction log' },
+  batches:     { title: 'Batch Tracking',          sub: 'Lot and batch management' },
+  alerts:      { title: 'Low Stock Alerts',        sub: 'Items requiring restocking' },
+  valuation:   { title: 'Stock Valuation',         sub: 'Financial inventory snapshot' },
+};
+
+function switchSection(name) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`section-${name}`).classList.add('active');
+  const navItem = document.querySelector(`[data-section="${name}"]`);
+  if (navItem) navItem.classList.add('active');
+  S.currentSection = name;
+  const meta = SECTION_META[name] || {};
+  document.getElementById('topbar-title').textContent = meta.title || name;
+  document.getElementById('topbar-subtitle').textContent = meta.sub || '';
+  loadSection(name);
+  lucide.createIcons();
+}
+
+function loadSection(name) {
+  switch (name) {
+    case 'overview':   loadOverview(); break;
+    case 'products':   loadProducts(); break;
+    case 'categories': loadCategories(); break;
+    case 'warehouses': loadWarehouses(); break;
+    case 'locations':  loadAllLocations(); break;
+    case 'moves':      loadMoves(); break;
+    case 'batches':    loadBatches(); break;
+    case 'alerts':     loadAlerts(); break;
+    case 'valuation':  loadValuation(); break;
+  }
+}
+
+function refreshCurrentSection() {
+  loadSection(S.currentSection);
+  toast('Refreshed', 'success', 1500);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════
+async function initApp() {
+  lucide.createIcons();
+  await Promise.all([loadProducts(true), loadCategories(true), loadWarehouses(true), loadLocations()]);
+  loadOverview();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// OVERVIEW
+// ════════════════════════════════════════════════════════════════════
+async function loadOverview() {
+  await Promise.all([
+    loadOverviewStats(),
+    loadCategoryBreakdown(),
+    loadRecentMoves(),
+    loadOverviewWarehouses(),
+    loadLowStockPanel(),
+  ]);
+}
+
+async function loadOverviewStats() {
+  try {
+    const [statsData, whData] = await Promise.all([
+      api('/inventory/stats'),
+      api('/inventory/warehouses'),
+    ]);
+    const whs = whData.data || [];
+    const totalLocs = whs.reduce((s, w) => s + (w.location_count || 0), 0);
+
+    document.getElementById('stat-total-products').textContent = statsData.total_products || 0;
+    document.getElementById('stat-active-products').textContent = `${statsData.active_products || 0} active SKUs`;
+    document.getElementById('stat-stock-value').textContent = '$' + fmtNum(statsData.total_stock_value || 0);
+    document.getElementById('stat-low-stock').textContent = statsData.low_stock_count || 0;
+    document.getElementById('stat-warehouses').textContent = whs.length;
+    document.getElementById('stat-locations-sub').textContent = `${totalLocs} locations total`;
+
+    // alert badge
+    const lowCount = statsData.low_stock_count || 0;
+    const badge = document.getElementById('alert-badge');
+    if (lowCount > 0) { badge.textContent = lowCount; badge.style.display = 'inline-block'; }
+    document.getElementById('low-stock-count-badge').textContent = lowCount;
+  } catch (e) { console.error('loadOverviewStats', e); }
+}
+
+async function loadCategoryBreakdown() {
+  const el = document.getElementById('category-breakdown');
+  try {
+    const data = await api('/inventory/categories');
+    const cats = (data.data || data || []).sort((a,b) => b.product_count - a.product_count);
+    const total = cats.reduce((s,c) => s + (c.product_count || 0), 0);
+    const catColors = ['var(--accent)', 'var(--green)', 'var(--cyan)', 'var(--amber)', 'var(--purple)'];
+    if (!cats.length) { el.innerHTML = `<div class="empty-state" style="padding:20px"><p>No categories</p></div>`; return; }
+    el.innerHTML = cats.map((c, i) => {
+      const pct = total ? Math.round((c.product_count / total) * 100) : 0;
+      const color = catColors[i % catColors.length];
+      return `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
+              <span style="font-size:12px;color:var(--text-secondary);flex-shrink:0;margin-left:8px">${c.product_count}</span>
+            </div>
+            <div class="progress"><div class="progress-bar" style="width:${pct}%;background:${color}"></div></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);flex-shrink:0;width:32px;text-align:right">${pct}%</div>
+        </div>`;
+    }).join('');
+  } catch (e) { el.innerHTML = `<div style="color:var(--text-muted);font-size:13px">Failed to load</div>`; }
+}
+
+async function loadRecentMoves() {
+  const el = document.getElementById('recent-moves');
+  try {
+    const data = await api('/inventory/stock-moves?page_size=8');
+    const moves = data.data || [];
+    if (!moves.length) { el.innerHTML = `<div class="empty-state" style="padding:20px"><p>No movements yet</p></div>`; return; }
+    el.innerHTML = moves.map(m => {
+      const cfg = moveTypeCfg(m.move_type);
+      const date = fmtDate(m.created_at);
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border)">
+          <div style="width:28px;height:28px;border-radius:50%;background:${cfg.bg};color:${cfg.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="12" height="12" data-lucide="${cfg.icon}"></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.product_name)}</div>
+            <div style="font-size:11px;color:var(--text-secondary)">${m.reference || '—'} &middot; ${date}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:13px;font-weight:700;color:${cfg.color}">${m.move_type === 'out' ? '-' : '+'}${m.quantity}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${esc(m.from_location_name || m.to_location_name || '—')}</div>
+          </div>
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+  } catch (e) { el.innerHTML = `<div style="padding:16px;color:var(--text-muted)">Failed to load moves</div>`; }
+}
+
+async function loadOverviewWarehouses() {
+  const el = document.getElementById('overview-warehouses');
+  try {
+    const data = await api('/inventory/warehouses');
+    const whs = data.data || [];
+    el.innerHTML = whs.map(w => `
+      <div class="warehouse-card">
+        <div class="wh-header">
+          <div>
+            <div class="wh-name">${esc(w.name)}</div>
+            <div class="wh-code">${esc(w.code)}</div>
+          </div>
+          <span class="badge ${w.is_active ? 'badge-green' : 'badge-gray'}">${w.is_active ? 'Active' : 'Inactive'}</span>
+        </div>
+        <div class="wh-stat"><div class="wh-stat-label">Locations</div><div class="wh-stat-value">${w.location_count || 0}</div></div>
+        <div class="wh-stat"><div class="wh-stat-label">City</div><div class="wh-stat-value">${esc(w.city || '—')}</div></div>
+        <div class="wh-stat"><div class="wh-stat-label">Country</div><div class="wh-stat-value">${esc(w.country || '—')}</div></div>
+        <div style="margin-top:12px">
+          <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="switchSection('warehouses')">
+            <svg width="12" height="12" data-lucide="map-pin"></svg> View Details
+          </button>
+        </div>
+      </div>`).join('');
+    lucide.createIcons();
+  } catch (e) { el.innerHTML = `<p style="color:var(--text-muted)">Failed to load warehouses</p>`; }
+}
+
+async function loadLowStockPanel() {
+  const el = document.getElementById('low-stock-panel');
+  try {
+    const data = await api('/inventory/products/low-stock');
+    const items = data.data || [];
+    S.lowStock = items;
+    document.getElementById('low-stock-count-badge').textContent = items.length;
+    if (!items.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:20px"><svg width="24" height="24" data-lucide="check-circle" style="color:var(--green)"></svg><h3 style="color:var(--green)">All Good!</h3><p>No low stock items</p></div>`;
+      lucide.createIcons(); return;
+    }
+    el.innerHTML = items.map(p => {
+      const onHand = p.qty_on_hand !== undefined ? p.qty_on_hand : (p.total_stock || 0);
+      const reorder = p.reorder_point || 0;
+      const pct = reorder > 0 ? Math.min(100, Math.round((onHand / reorder) * 100)) : 100;
+      const isCrit = onHand <= 0;
+      const name = p.name_en || (typeof p.name === 'string' ? p.name : (p.name && p.name.en) || p.sku);
+      return `
+        <div class="alert-card ${isCrit ? 'critical' : ''}" onclick="switchSection('alerts')">
+          <div class="alert-icon ${isCrit ? 'danger' : 'warning'}">
+            <svg width="18" height="18" data-lucide="${isCrit ? 'alert-octagon' : 'alert-triangle'}"></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${esc(p.sku)} &middot; Reorder: ${reorder}</div>
+            <div style="margin-top:6px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                <span style="font-size:11px;color:var(--text-muted)">Stock level</span>
+                <span style="font-size:11px;font-weight:700;color:${isCrit ? 'var(--red)' : 'var(--amber)'}">${onHand}</span>
+              </div>
+              <div class="progress ${isCrit ? 'progress-red' : 'progress-amber'}"><div class="progress-bar" style="width:${pct}%"></div></div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+  } catch (e) { el.innerHTML = `<p style="color:var(--text-muted);font-size:13px">Failed to load</p>`; }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PRODUCTS
+// ════════════════════════════════════════════════════════════════════
+async function loadProducts(silent = false) {
+  if (!silent) document.getElementById('products-tbody').innerHTML = `<tr class="loading-row"><td colspan="10"><div class="spinner"></div> Loading...</td></tr>`;
+  try {
+    const data = await api('/inventory/products?page_size=200');
+    S.products = data.data || [];
+    populateCategoryFilter(S.categories);
+    filterProducts();
+  } catch (e) {
+    document.getElementById('products-tbody').innerHTML = `<tr class="loading-row"><td colspan="10" style="color:var(--red)">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// Helper: resolve product name regardless of API shape
+function prodName(p) {
+  if (p.name_en) return p.name_en;
+  if (typeof p.name === 'string') return p.name;
+  if (p.name && p.name.en) return p.name.en;
+  return p.sku || 'Unknown';
+}
+// Helper: resolve on-hand quantity
+function prodQty(p) {
+  if (p.current_stock != null) return p.current_stock;
+  if (p.qty_on_hand != null) return p.qty_on_hand;
+  if (p.available_qty != null) return p.available_qty;
+  if (p.total_stock != null) return p.total_stock;
+  return 0;
+}
+
+function filterProducts() {
+  const q = document.getElementById('product-search').value.toLowerCase();
+  const cat = document.getElementById('product-cat-filter').value;
+  const status = document.getElementById('product-status-filter').value;
+  const stock = document.getElementById('product-stock-filter').value;
+  let list = [...S.products];
+  if (q) list = list.filter(p => prodName(p).toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q) || (p.barcode || '').toLowerCase().includes(q));
+  if (cat) list = list.filter(p => p.category_id === cat);
+  if (status === 'active') list = list.filter(p => p.is_active);
+  if (status === 'inactive') list = list.filter(p => !p.is_active);
+  if (stock === 'low') list = list.filter(p => prodQty(p) > 0 && prodQty(p) <= (p.reorder_point || 0));
+  if (stock === 'out') list = list.filter(p => prodQty(p) <= 0);
+  if (stock === 'ok') list = list.filter(p => prodQty(p) > (p.reorder_point || 0));
+  list = sortList(list, S.sortField, S.sortDir);
+  S.filteredProducts = list;
+  S.productPage = 1;
+  renderProductsTable();
+  document.getElementById('product-count-label').textContent = `${list.length} product${list.length !== 1 ? 's' : ''}`;
+}
+
+function sortProducts(field) {
+  if (S.sortField === field) S.sortDir = S.sortDir === 'asc' ? 'desc' : 'asc';
+  else { S.sortField = field; S.sortDir = 'asc'; }
+  filterProducts();
+  // Update icons
+  ['name','qty_on_hand','cost_price','sale_price'].forEach(f => {
+    const el = document.getElementById(`sort-${f.replace('_on_hand','qty').replace('_price',f === 'cost_price' ? 'cost' : 'price')}-icon`);
+    if (el) el.textContent = S.sortField === f ? (S.sortDir === 'asc' ? ' ↑' : ' ↓') : '';
+  });
+}
+
+function sortList(list, field, dir) {
+  return [...list].sort((a, b) => {
+    let va = a[field], vb = b[field];
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderProductsTable() {
+  const tbody = document.getElementById('products-tbody');
+  const start = (S.productPage - 1) * S.productPageSize;
+  const page = S.filteredProducts.slice(start, start + S.productPageSize);
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><svg width="32" height="32" data-lucide="package" style="opacity:.3"></svg><h3>No products found</h3><p>Try adjusting your search or filters</p></div></td></tr>`;
+    lucide.createIcons(); renderProductsPagination(); return;
+  }
+  const catMap = Object.fromEntries(S.categories.map(c => [c.id, c.name]));
+  tbody.innerHTML = page.map(p => {
+    const qty = prodQty(p);
+    const reorder = p.reorder_point || 0;
+    const stockColor = qty <= 0 ? 'var(--red)' : qty <= reorder ? 'var(--amber)' : 'var(--green)';
+    const stockBadge = qty <= 0 ? `<span class="badge badge-red">Out of Stock</span>` : qty <= reorder && reorder > 0 ? `<span class="badge badge-amber">Low Stock</span>` : `<span class="badge badge-green">In Stock</span>`;
+    const catName = p.category_name || catMap[p.category_id] || '—';
+    return `
+      <tr onclick="openDetailPanel('${p.id}')" style="cursor:pointer">
+        <td onclick="event.stopPropagation()"><input type="checkbox" class="product-checkbox" value="${p.id}" onchange="toggleProductSelect(this)" ${S.selectedProducts.has(p.id)?'checked':''}></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="product-thumb"><svg width="16" height="16" data-lucide="package" style="color:var(--text-muted)"></svg></div>
+            <div>
+              <div style="font-size:13.5px;font-weight:700">${esc(prodName(p))}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${esc((p.description||'').slice(0,40))}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="sku-tag">${esc(p.sku)}</span>
+          ${p.barcode ? `<div class="td-mono" style="margin-top:3px;font-size:11px">${esc(p.barcode)}</div>` : ''}
+        </td>
+        <td>
+          <div class="qty-wrap">
+            <div class="qty-value" style="color:${stockColor}">${fmtQty(qty)} <span style="font-size:11px;font-weight:400;color:var(--text-muted)">${esc(p.uom||'')}</span></div>
+            ${reorder > 0 ? `<div class="qty-reorder">Reorder at ${reorder}</div>` : ''}
+          </div>
+        </td>
+        <td style="color:${reorder > 0 ? 'var(--text-secondary)' : 'var(--text-muted)'}">${reorder || '—'}</td>
+        <td><span style="font-weight:600">$${fmtNum(p.cost_price)}</span></td>
+        <td style="color:var(--green);font-weight:600">$${fmtNum(p.sale_price || p.base_price)}</td>
+        <td><span class="badge badge-blue">${esc(catName)}</span></td>
+        <td>${stockBadge} ${p.is_active ? '' : '<span class="badge badge-gray" style="margin-top:3px">Inactive</span>'}</td>
+        <td onclick="event.stopPropagation()">
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="openProductEdit('${p.id}')" title="Edit"><svg width="13" height="13" data-lucide="edit-2"></svg></button>
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="confirmDeleteProduct('${p.id}')" title="Delete"><svg width="13" height="13" data-lucide="trash-2" style="color:var(--red)"></svg></button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+  lucide.createIcons();
+  renderProductsPagination();
+}
+
+function renderProductsPagination() {
+  const total = S.filteredProducts.length;
+  const pages = Math.ceil(total / S.productPageSize);
+  const start = (S.productPage - 1) * S.productPageSize + 1;
+  const end = Math.min(S.productPage * S.productPageSize, total);
+  document.getElementById('products-pagination').innerHTML = `
+    <div class="pagination-info">Showing ${total ? start : 0}–${end} of ${total} products</div>
+    <div class="pagination-controls">
+      <button class="page-btn" onclick="setProductPage(${S.productPage-1})" ${S.productPage<=1?'disabled':''}><svg width="14" height="14" data-lucide="chevron-left"></svg></button>
+      ${Array.from({length:Math.min(pages,7)},(_,i)=>{
+        const p = pages <= 7 ? i+1 : i === 0 ? 1 : i === 6 ? pages : S.productPage - 2 + i;
+        return `<button class="page-btn ${p===S.productPage?'active':''}" onclick="setProductPage(${p})">${p}</button>`;
+      }).join('')}
+      <button class="page-btn" onclick="setProductPage(${S.productPage+1})" ${S.productPage>=pages?'disabled':''}><svg width="14" height="14" data-lucide="chevron-right"></svg></button>
+    </div>`;
+  lucide.createIcons();
+}
+
+function setProductPage(p) {
+  const pages = Math.ceil(S.filteredProducts.length / S.productPageSize);
+  if (p < 1 || p > pages) return;
+  S.productPage = p;
+  renderProductsTable();
+}
+
+function populateCategoryFilter(cats) {
+  const sel = document.getElementById('product-cat-filter');
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">All Categories</option>` + cats.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  sel.value = cur;
+}
+
+function toggleSelectAll(cb) {
+  document.querySelectorAll('.product-checkbox').forEach(el => {
+    el.checked = cb.checked;
+    if (cb.checked) S.selectedProducts.add(el.value);
+    else S.selectedProducts.delete(el.value);
+  });
+}
+
+function toggleProductSelect(cb) {
+  if (cb.checked) S.selectedProducts.add(cb.value);
+  else S.selectedProducts.delete(cb.value);
+}
+
+function exportProducts() {
+  const rows = [['Name','SKU','Barcode','On Hand','Reorder Point','Cost Price','Sale Price','Category','Status']];
+  const catMap = Object.fromEntries(S.categories.map(c => [c.id, c.name]));
+  S.filteredProducts.forEach(p => rows.push([prodName(p), p.sku, p.barcode||'', prodQty(p), p.reorder_point, p.cost_price, p.sale_price||p.base_price, p.category_name||catMap[p.category_id]||'', p.is_active?'Active':'Inactive']));
+  const csv = rows.map(r => r.map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'inventory-export.csv';
+  a.click();
+  toast('Exported to CSV', 'success');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PRODUCT DETAIL PANEL
+// ════════════════════════════════════════════════════════════════════
+async function openDetailPanel(productId) {
+  const p = S.products.find(x => x.id === productId);
+  if (!p) return;
+  S.detailProduct = p;
+  const name = prodName(p);
+  const qty = prodQty(p);
+  const reorder = p.reorder_point || 0;
+  document.getElementById('detail-product-name').textContent = name;
+  document.getElementById('detail-product-sku').textContent = p.sku;
+  const catMap = Object.fromEntries(S.categories.map(c => [c.id, c.name]));
+  const catName = p.category_name || catMap[p.category_id] || 'Uncategorized';
+  const stockColor = qty <= 0 ? 'var(--red)' : qty <= reorder && reorder > 0 ? 'var(--amber)' : 'var(--green)';
+  const stockLabel = qty <= 0 ? 'Out of Stock' : qty <= reorder && reorder > 0 ? 'Low Stock' : 'In Stock';
+  const salePrice = p.sale_price || p.base_price || 0;
+  const margin = salePrice > (p.cost_price || 0) ? ((((salePrice - p.cost_price) / salePrice) * 100).toFixed(1) + '%') : '—';
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <span class="badge badge-blue">${esc(catName)}</span>
+      <span class="badge" style="background:${qty<=0?'var(--red-dim)':qty<=reorder&&reorder>0?'var(--amber-dim)':'var(--green-dim)'};color:${stockColor}">${stockLabel}</span>
+      <span class="badge ${p.is_active?'badge-green':'badge-gray'}">${p.is_active?'Active':'Inactive'}</span>
+    </div>
+    <div style="background:var(--bg-raised);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="text-align:center">
+        <div style="font-size:30px;font-weight:800;color:${stockColor}">${fmtQty(qty)}</div>
+        <div style="font-size:11px;color:var(--text-secondary)">Units on Hand</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:30px;font-weight:800;color:var(--text-primary)">$${fmtNum(qty * (p.cost_price||0))}</div>
+        <div style="font-size:11px;color:var(--text-secondary)">Stock Value</div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Description</div>
+      <div style="font-size:13px;color:${p.description?'var(--text-primary)':'var(--text-muted)'}">${esc(p.description || 'No description')}</div>
+    </div>
+    <div class="info-row"><span class="info-label">SKU</span><span class="sku-tag">${esc(p.sku)}</span></div>
+    <div class="info-row"><span class="info-label">Barcode</span><span class="info-value">${esc(p.barcode || '—')}</span></div>
+    <div class="info-row"><span class="info-label">Unit</span><span class="info-value">${esc(p.uom || 'Unit')}</span></div>
+    <div class="info-row"><span class="info-label">Cost Price</span><span class="info-value" style="color:var(--text-primary)">$${fmtNum(p.cost_price)}</span></div>
+    <div class="info-row"><span class="info-label">Sale Price</span><span class="info-value" style="color:var(--green)">$${fmtNum(salePrice)}</span></div>
+    <div class="info-row"><span class="info-label">Margin</span><span class="info-value" style="color:var(--cyan)">${margin}</span></div>
+    <div class="info-row"><span class="info-label">Reorder Point</span><span class="info-value">${reorder || '—'}</span></div>
+    <div class="info-row"><span class="info-label">Created</span><span class="info-value" style="color:var(--text-secondary)">${fmtDate(p.created_at)}</span></div>
+  `;
+  document.getElementById('product-detail-panel').classList.add('open');
+  document.getElementById('panel-backdrop').style.display = 'block';
+  lucide.createIcons();
+}
+
+function closeDetailPanel() {
+  document.getElementById('product-detail-panel').classList.remove('open');
+  document.getElementById('panel-backdrop').style.display = 'none';
+  S.detailProduct = null;
+}
+
+function editFromDetail() {
+  if (S.detailProduct) { closeDetailPanel(); openProductEdit(S.detailProduct.id); }
+}
+
+function adjustFromDetail() {
+  if (S.detailProduct) {
+    closeDetailPanel();
+    document.getElementById('adj-product').value = S.detailProduct.id;
+    openModal('stock-adj-modal');
+  }
+}
+
+async function deleteFromDetail() {
+  if (!S.detailProduct) return;
+  if (!confirm(`Delete "${S.detailProduct.name}"? This cannot be undone.`)) return;
+  try {
+    await api(`/inventory/products/${S.detailProduct.id}`, { method: 'DELETE' });
+    closeDetailPanel();
+    toast('Product deleted', 'success');
+    await loadProducts();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PRODUCT CREATE / EDIT
+// ════════════════════════════════════════════════════════════════════
+function openProductModal() {
+  S.editProductId = null;
+  document.getElementById('product-modal-title').textContent = 'New Product';
+  document.getElementById('pm-id').value = '';
+  ['pm-name','pm-sku','pm-barcode','pm-desc','pm-uom','pm-cost','pm-price','pm-qty','pm-reorder','pm-weight'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pm-uom').value = 'Unit';
+  document.getElementById('pm-status').value = 'true';
+  populateCategorySelect('pm-category');
+  openModal('product-modal');
+}
+
+function openProductEdit(id) {
+  const p = S.products.find(x => x.id === id);
+  if (!p) return;
+  S.editProductId = id;
+  document.getElementById('product-modal-title').textContent = 'Edit Product';
+  document.getElementById('pm-id').value = p.id;
+  document.getElementById('pm-name').value = p.name_en || (typeof p.name === 'string' ? p.name : (p.name && p.name.en) || '') || '';
+  document.getElementById('pm-sku').value = p.sku || '';
+  document.getElementById('pm-barcode').value = p.barcode || '';
+  document.getElementById('pm-desc').value = p.description || '';
+  document.getElementById('pm-uom').value = p.uom || 'Unit';
+  document.getElementById('pm-cost').value = p.cost_price || '';
+  document.getElementById('pm-price').value = p.sale_price || '';
+  document.getElementById('pm-qty').value = p.qty_on_hand || '';
+  document.getElementById('pm-reorder').value = p.reorder_point || '';
+  document.getElementById('pm-weight').value = p.weight || '';
+  document.getElementById('pm-status').value = p.is_active ? 'true' : 'false';
+  populateCategorySelect('pm-category', p.category_id);
+  openModal('product-modal');
+}
+
+function populateCategorySelect(selId, selectedId = '') {
+  const sel = document.getElementById(selId);
+  sel.innerHTML = `<option value="">No category</option>` + S.categories.map(c => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+}
+
+async function saveProduct() {
+  const btn = document.getElementById('product-save-btn');
+  const name = document.getElementById('pm-name').value.trim();
+  const sku = document.getElementById('pm-sku').value.trim();
+  if (!name || !sku) { toast('Name and SKU are required', 'error'); return; }
+  btn.disabled = true;
+  const body = {
+    name: { en: name },
+    sku,
+    barcode: document.getElementById('pm-barcode').value.trim() || null,
+    description: document.getElementById('pm-desc').value.trim() || null,
+    category_id: document.getElementById('pm-category').value || null,
+    uom: document.getElementById('pm-uom').value.trim() || 'Unit',
+    cost_price: parseFloat(document.getElementById('pm-cost').value) || 0,
+    sale_price: parseFloat(document.getElementById('pm-price').value) || 0,
+    qty_on_hand: parseFloat(document.getElementById('pm-qty').value) || 0,
+    reorder_point: parseFloat(document.getElementById('pm-reorder').value) || 0,
+    is_active: document.getElementById('pm-status').value === 'true',
+  };
+  try {
+    if (S.editProductId) {
+      await api(`/inventory/products/${S.editProductId}`, { method: 'PUT', body: JSON.stringify(body) });
+      toast('Product updated', 'success');
+    } else {
+      await api('/inventory/products', { method: 'POST', body: JSON.stringify(body) });
+      toast('Product created', 'success');
+    }
+    closeModal('product-modal');
+    await loadProducts();
+  } catch (e) { toast(e.message, 'error'); }
+  btn.disabled = false;
+}
+
+async function confirmDeleteProduct(id) {
+  const p = S.products.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`Delete "${p.name_en || p.sku || 'this product'}"?`)) return;
+  try {
+    await api(`/inventory/products/${id}`, { method: 'DELETE' });
+    toast('Product deleted', 'success');
+    await loadProducts();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CATEGORIES
+// ════════════════════════════════════════════════════════════════════
+async function loadCategories(silent = false) {
+  if (!silent) document.getElementById('categories-grid').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px"><div class="spinner"></div></div>`;
+  try {
+    const data = await api('/inventory/categories');
+    S.categories = data.data || data || [];
+    renderCategories();
+    populateCategoryFilter(S.categories);
+  } catch (e) {
+    document.getElementById('categories-grid').innerHTML = `<div style="color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
+
+const CAT_ICONS = ['cpu', 'monitor', 'hard-drive', 'usb', 'wifi', 'printer', 'mouse-pointer', 'keyboard', 'file-text', 'box'];
+const CAT_COLORS = [
+  { bg: 'var(--accent-dim)', color: 'var(--accent)' },
+  { bg: 'var(--green-dim)', color: 'var(--green)' },
+  { bg: 'var(--cyan-dim)', color: 'var(--cyan)' },
+  { bg: 'var(--amber-dim)', color: 'var(--amber)' },
+  { bg: 'var(--purple-dim)', color: 'var(--purple)' },
+];
+
+function renderCategories() {
+  const el = document.getElementById('categories-grid');
+  if (!S.categories.length) {
+    el.innerHTML = `<div class="empty-state"><svg width="32" height="32" data-lucide="tag" style="opacity:.3"></svg><h3>No categories</h3><p>Create a category to organize your products</p></div>`;
+    lucide.createIcons(); return;
+  }
+  el.innerHTML = S.categories.map((c, i) => {
+    const cfg = CAT_COLORS[i % CAT_COLORS.length];
+    const icon = CAT_ICONS[i % CAT_ICONS.length];
+    return `
+      <div class="cat-card">
+        <div class="cat-icon" style="background:${cfg.bg};color:${cfg.color}"><svg width="20" height="20" data-lucide="${icon}"></svg></div>
+        <div class="cat-name">${esc(c.name)}</div>
+        <div class="cat-desc">${esc(c.description || 'No description')}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+          <div class="cat-count"><svg width="12" height="12" data-lucide="package" style="color:var(--text-muted)"></svg> ${c.product_count || 0} products</div>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="openCategoryEdit('${c.id}')" title="Edit"><svg width="12" height="12" data-lucide="edit-2"></svg></button>
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="confirmDeleteCategory('${c.id}')" title="Delete"><svg width="12" height="12" data-lucide="trash-2" style="color:var(--red)"></svg></button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function openCategoryModal() {
+  document.getElementById('cat-modal-title').textContent = 'New Category';
+  document.getElementById('cat-id').value = '';
+  document.getElementById('cat-name').value = '';
+  document.getElementById('cat-desc').value = '';
+  openModal('category-modal');
+}
+
+function openCategoryEdit(id) {
+  const c = S.categories.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('cat-modal-title').textContent = 'Edit Category';
+  document.getElementById('cat-id').value = c.id;
+  document.getElementById('cat-name').value = c.name || '';
+  document.getElementById('cat-desc').value = c.description || '';
+  openModal('category-modal');
+}
+
+async function saveCategory() {
+  const name = document.getElementById('cat-name').value.trim();
+  if (!name) { toast('Name is required', 'error'); return; }
+  const body = { name, description: document.getElementById('cat-desc').value.trim() || null };
+  const id = document.getElementById('cat-id').value;
+  try {
+    if (id) await api(`/inventory/categories/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+    else await api('/inventory/categories', { method: 'POST', body: JSON.stringify(body) });
+    toast(id ? 'Category updated' : 'Category created', 'success');
+    closeModal('category-modal');
+    await loadCategories();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function confirmDeleteCategory(id) {
+  const c = S.categories.find(x => x.id === id);
+  if (!confirm(`Delete category "${c?.name}"?`)) return;
+  try {
+    await api(`/inventory/categories/${id}`, { method: 'DELETE' });
+    toast('Category deleted', 'success');
+    await loadCategories();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// WAREHOUSES
+// ════════════════════════════════════════════════════════════════════
+async function loadWarehouses(silent = false) {
+  if (!silent) document.getElementById('warehouses-grid').innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center"><div class="spinner"></div></div>`;
+  try {
+    const data = await api('/inventory/warehouses');
+    S.warehouses = data.data || [];
+    renderWarehouses();
+    renderWarehouseLocations();
+    populateWarehouseSelects();
+  } catch (e) {
+    document.getElementById('warehouses-grid').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+}
+
+function renderWarehouses() {
+  const el = document.getElementById('warehouses-grid');
+  if (!S.warehouses.length) {
+    el.innerHTML = `<div class="empty-state"><svg width="32" height="32" data-lucide="warehouse" style="opacity:.3"></svg><h3>No warehouses</h3></div>`;
+    lucide.createIcons(); return;
+  }
+  el.innerHTML = S.warehouses.map(w => `
+    <div class="warehouse-card">
+      <div class="wh-header">
+        <div>
+          <div class="wh-name">${esc(w.name)}</div>
+          <div class="wh-code">${esc(w.code)}</div>
+        </div>
+        <span class="badge ${w.is_active ? 'badge-green' : 'badge-gray'}">${w.is_active ? 'Active' : 'Inactive'}</span>
+      </div>
+      <div class="wh-stat"><div class="wh-stat-label">Locations</div><div class="wh-stat-value">${w.location_count || 0}</div></div>
+      <div class="wh-stat"><div class="wh-stat-label">Address</div><div class="wh-stat-value" style="font-size:12px">${esc(w.address || '—')}</div></div>
+      <div class="wh-stat"><div class="wh-stat-label">City</div><div class="wh-stat-value">${esc(w.city || '—')}</div></div>
+      <div class="wh-stat"><div class="wh-stat-label">Country</div><div class="wh-stat-value">${esc(w.country || '—')}</div></div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center" onclick="openWarehouseEdit('${w.id}')">
+          <svg width="12" height="12" data-lucide="edit-2"></svg> Edit
+        </button>
+      </div>
+    </div>`).join('');
+  lucide.createIcons();
+}
+
+function renderWarehouseLocations() {
+  const tbody = document.getElementById('locations-tbody');
+  if (!S.locations.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state" style="padding:20px"><p>No locations yet</p></div></td></tr>`;
+    return;
+  }
+  const whMap = Object.fromEntries(S.warehouses.map(w => [w.id, w.name]));
+  tbody.innerHTML = S.locations.map(l => `
+    <tr>
+      <td><span style="font-weight:600">${esc(l.name)}</span></td>
+      <td><span class="sku-tag">${esc(l.code)}</span></td>
+      <td>${esc(whMap[l.warehouse_id] || '—')}</td>
+      <td><span class="badge badge-cyan">${l.location_type || 'internal'}</span></td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="openLocationEditById('${l.id}')" title="Edit"><svg width="12" height="12" data-lucide="edit-2"></svg></button>
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="confirmDeleteLocation('${l.id}')" title="Delete"><svg width="12" height="12" data-lucide="trash-2" style="color:var(--red)"></svg></button>
+        </div>
+      </td>
+    </tr>`).join('');
+  lucide.createIcons();
+}
+
+function openWarehouseModal() {
+  document.getElementById('wh-modal-title').textContent = 'New Warehouse';
+  document.getElementById('wh-id').value = '';
+  ['wh-name','wh-code','wh-city','wh-country','wh-address'].forEach(id => document.getElementById(id).value = '');
+  openModal('warehouse-modal');
+}
+
+function openWarehouseEdit(id) {
+  const w = S.warehouses.find(x => x.id === id);
+  if (!w) return;
+  document.getElementById('wh-modal-title').textContent = 'Edit Warehouse';
+  document.getElementById('wh-id').value = w.id;
+  document.getElementById('wh-name').value = w.name || '';
+  document.getElementById('wh-code').value = w.code || '';
+  document.getElementById('wh-city').value = w.city || '';
+  document.getElementById('wh-country').value = w.country || '';
+  document.getElementById('wh-address').value = w.address || '';
+  openModal('warehouse-modal');
+}
+
+async function saveWarehouse() {
+  const name = document.getElementById('wh-name').value.trim();
+  const code = document.getElementById('wh-code').value.trim();
+  if (!name || !code) { toast('Name and code are required', 'error'); return; }
+  const body = { name, code, city: document.getElementById('wh-city').value.trim() || null, country: document.getElementById('wh-country').value.trim() || null, address: document.getElementById('wh-address').value.trim() || null, is_active: true };
+  const id = document.getElementById('wh-id').value;
+  try {
+    if (id) await api(`/inventory/warehouses/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+    else await api('/inventory/warehouses', { method: 'POST', body: JSON.stringify(body) });
+    toast(id ? 'Warehouse updated' : 'Warehouse created', 'success');
+    closeModal('warehouse-modal');
+    await loadWarehouses();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// LOCATIONS
+// ════════════════════════════════════════════════════════════════════
+async function loadLocations() {
+  try {
+    const whs = S.warehouses.length ? S.warehouses : ((await api('/inventory/warehouses')).data || []);
+    // Fetch all locations; also fetch per-warehouse for warehouse_id mapping
+    const allData = await api('/inventory/locations');
+    let all = allData.data || allData || [];
+    // If global fetch returns empty, fetch per warehouse
+    if (!all.length && whs.length) {
+      for (const w of whs) {
+        try {
+          const d = await api(`/inventory/locations?warehouse_id=${w.id}`);
+          (d.data || d || []).forEach(l => { all.push(l); });
+        } catch {}
+      }
+    }
+    S.locations = all;
+    renderWarehouseLocations();
+    renderAllLocations();
+    populateLocationSelects();
+  } catch (e) { console.error('loadLocations', e); }
+}
+
+async function loadAllLocations() {
+  const tbody = document.getElementById('locations-all-tbody');
+  tbody.innerHTML = `<tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr>`;
+  await loadLocations();
+  renderAllLocations();
+}
+
+function filterLocations() {
+  const q = document.getElementById('location-search').value.toLowerCase();
+  const wh = document.getElementById('location-wh-filter').value;
+  let list = [...S.locations];
+  if (q) list = list.filter(l => l.name.toLowerCase().includes(q) || l.code.toLowerCase().includes(q));
+  if (wh) list = list.filter(l => l.warehouse_id === wh);
+  renderAllLocationsData(list);
+}
+
+function renderAllLocations() {
+  // populate warehouse filter
+  const sel = document.getElementById('location-wh-filter');
+  sel.innerHTML = `<option value="">All Warehouses</option>` + S.warehouses.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join('');
+  filterLocations();
+}
+
+function renderAllLocationsData(list) {
+  const tbody = document.getElementById('locations-all-tbody');
+  const whMap = Object.fromEntries(S.warehouses.map(w => [w.id, w.name]));
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state" style="padding:20px"><p>No locations found</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(l => `
+    <tr>
+      <td><span style="font-weight:600">${esc(l.name)}</span></td>
+      <td><span class="sku-tag">${esc(l.code)}</span></td>
+      <td>${esc(whMap[l.warehouse_id] || '—')}</td>
+      <td><span class="badge badge-cyan">${l.location_type || 'internal'}</span></td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="openLocationEditById('${l.id}')" title="Edit"><svg width="12" height="12" data-lucide="edit-2"></svg></button>
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="confirmDeleteLocation('${l.id}')" title="Delete"><svg width="12" height="12" data-lucide="trash-2" style="color:var(--red)"></svg></button>
+        </div>
+      </td>
+    </tr>`).join('');
+  lucide.createIcons();
+}
+
+function populateWarehouseSelects() {
+  ['loc-warehouse'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = S.warehouses.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join('');
+  });
+}
+
+function populateLocationSelects() {
+  const opts = S.locations.map(l => `<option value="${l.id}">${esc(l.name)} (${esc(l.code)})</option>`).join('');
+  ['sm-from','sm-to','tr-from','tr-to'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<option value="">None</option>` + opts;
+  });
+}
+
+function openLocationModal() {
+  document.getElementById('loc-modal-title').textContent = 'New Location';
+  document.getElementById('loc-id').value = '';
+  document.getElementById('loc-name').value = '';
+  document.getElementById('loc-code').value = '';
+  document.getElementById('loc-type').value = 'internal';
+  populateWarehouseSelects();
+  openModal('location-modal');
+}
+
+function openLocationEditById(id) {
+  const l = S.locations.find(x => x.id === id);
+  if (!l) return;
+  document.getElementById('loc-modal-title').textContent = 'Edit Location';
+  document.getElementById('loc-id').value = l.id;
+  document.getElementById('loc-name').value = l.name || '';
+  document.getElementById('loc-code').value = l.code || '';
+  document.getElementById('loc-type').value = l.location_type || 'internal';
+  populateWarehouseSelects();
+  document.getElementById('loc-warehouse').value = l.warehouse_id || '';
+  openModal('location-modal');
+}
+
+async function saveLocation() {
+  const name = document.getElementById('loc-name').value.trim();
+  const code = document.getElementById('loc-code').value.trim();
+  const warehouseId = document.getElementById('loc-warehouse').value;
+  if (!name || !code || !warehouseId) { toast('Name, code and warehouse are required', 'error'); return; }
+  const body = { name, code, warehouse_id: warehouseId, location_type: document.getElementById('loc-type').value };
+  const id = document.getElementById('loc-id').value;
+  try {
+    if (id) await api(`/inventory/locations/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+    else await api('/inventory/locations', { method: 'POST', body: JSON.stringify(body) });
+    toast(id ? 'Location updated' : 'Location created', 'success');
+    closeModal('location-modal');
+    await loadLocations();
+    renderWarehouseLocations();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function confirmDeleteLocation(id) {
+  if (!confirm('Delete this location?')) return;
+  try {
+    await api(`/inventory/locations/${id}`, { method: 'DELETE' });
+    toast('Location deleted', 'success');
+    await loadLocations();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// STOCK MOVES
+// ════════════════════════════════════════════════════════════════════
+async function loadMoves() {
+  document.getElementById('moves-tbody').innerHTML = `<tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr>`;
+  try {
+    const data = await api('/inventory/stock-moves?page_size=200');
+    S.moves = data.data || [];
+    filterMoves();
+    // populate product select for new move
+    populateMoveProductSelect();
+  } catch (e) {
+    document.getElementById('moves-tbody').innerHTML = `<tr class="loading-row"><td colspan="9" style="color:var(--red)">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function filterMoves() {
+  const q = document.getElementById('move-search').value.toLowerCase();
+  const type = document.getElementById('move-type-filter').value;
+  const state = document.getElementById('move-state-filter').value;
+  let list = [...S.moves];
+  if (q) list = list.filter(m => (m.product_name||'').toLowerCase().includes(q) || (m.reference||'').toLowerCase().includes(q));
+  if (type) list = list.filter(m => m.move_type === type);
+  if (state) list = list.filter(m => m.state === state);
+  S.filteredMoves = list;
+  S.movePage = 1;
+  renderMovesTable();
+  document.getElementById('move-count-label').textContent = `${list.length} move${list.length !== 1 ? 's' : ''}`;
+}
+
+function renderMovesTable() {
+  const tbody = document.getElementById('moves-tbody');
+  const start = (S.movePage - 1) * S.movePageSize;
+  const page = S.filteredMoves.slice(start, start + S.movePageSize);
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><svg width="32" height="32" data-lucide="arrow-left-right" style="opacity:.3"></svg><h3>No moves found</h3></div></td></tr>`;
+    lucide.createIcons(); renderMovesPagination(); return;
+  }
+  tbody.innerHTML = page.map(m => {
+    const cfg = moveTypeCfg(m.move_type);
+    return `
+      <tr>
+        <td class="td-mono">${fmtDate(m.created_at)}</td>
+        <td><span class="badge" style="background:${cfg.bg};color:${cfg.color}"><svg width="10" height="10" data-lucide="${cfg.icon}"></svg>${cfg.label}</span></td>
+        <td>
+          <div style="font-weight:600;font-size:13px">${esc(m.product_name)}</div>
+          <div class="td-mono" style="font-size:11px">${esc(m.product_sku)}</div>
+        </td>
+        <td><span style="font-size:15px;font-weight:800;color:${cfg.color}">${m.move_type==='out'?'-':'+'} ${fmtQty(m.quantity)}</span></td>
+        <td style="color:var(--text-secondary);font-size:12.5px">${esc(m.from_location_name || '—')}</td>
+        <td style="color:var(--text-secondary);font-size:12.5px">${esc(m.to_location_name || '—')}</td>
+        <td><span class="sku-tag">${esc(m.reference || '—')}</span></td>
+        <td style="font-weight:600">$${fmtNum(m.total_cost)}</td>
+        <td><span class="badge ${m.state==='done'?'badge-green':m.state==='pending'?'badge-amber':'badge-gray'}">${m.state}</span></td>
+      </tr>`;
+  }).join('');
+  lucide.createIcons();
+  renderMovesPagination();
+}
+
+function renderMovesPagination() {
+  const total = S.filteredMoves.length;
+  const pages = Math.ceil(total / S.movePageSize);
+  const start = (S.movePage - 1) * S.movePageSize + 1;
+  const end = Math.min(S.movePage * S.movePageSize, total);
+  document.getElementById('moves-pagination').innerHTML = `
+    <div class="pagination-info">Showing ${total ? start : 0}–${end} of ${total} moves</div>
+    <div class="pagination-controls">
+      <button class="page-btn" onclick="setMovePage(${S.movePage-1})" ${S.movePage<=1?'disabled':''}><svg width="14" height="14" data-lucide="chevron-left"></svg></button>
+      ${Array.from({length:Math.min(pages,7)},(_,i)=>{
+        const p = pages <= 7 ? i+1 : S.movePage <= 4 ? i+1 : i === 6 ? pages : S.movePage - 3 + i;
+        return `<button class="page-btn ${p===S.movePage?'active':''}" onclick="setMovePage(${p})">${p}</button>`;
+      }).join('')}
+      <button class="page-btn" onclick="setMovePage(${S.movePage+1})" ${S.movePage>=pages?'disabled':''}><svg width="14" height="14" data-lucide="chevron-right"></svg></button>
+    </div>`;
+  lucide.createIcons();
+}
+
+function setMovePage(p) {
+  const pages = Math.ceil(S.filteredMoves.length / S.movePageSize);
+  if (p < 1 || p > pages) return;
+  S.movePage = p;
+  renderMovesTable();
+}
+
+function moveTypeCfg(type) {
+  const m = {
+    in:         { label: 'Incoming',   icon: 'arrow-down-circle', color: 'var(--green)', bg: 'var(--green-dim)' },
+    out:        { label: 'Outgoing',   icon: 'arrow-up-circle',   color: 'var(--red)',   bg: 'var(--red-dim)' },
+    transfer:   { label: 'Transfer',   icon: 'arrow-right-circle',color: 'var(--cyan)',  bg: 'var(--cyan-dim)' },
+    adjustment: { label: 'Adjustment', icon: 'sliders-horizontal', color: 'var(--amber)', bg: 'var(--amber-dim)' },
+  };
+  return m[type] || { label: type, icon: 'circle', color: 'var(--text-secondary)', bg: 'var(--bg-raised)' };
+}
+
+function populateMoveProductSelect() {
+  const opts = S.products.map(p => `<option value="${p.id}">${esc(prodName(p))} (${esc(p.sku)})</option>`).join('');
+  ['sm-product','adj-product','tr-product','batch-product'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<option value="">Select product...</option>` + opts;
+  });
+}
+
+function openStockMoveModal() {
+  document.getElementById('sm-type').value = 'in';
+  document.getElementById('sm-qty').value = '';
+  document.getElementById('sm-cost').value = '';
+  document.getElementById('sm-ref').value = '';
+  document.getElementById('sm-notes').value = '';
+  populateMoveProductSelect();
+  populateLocationSelects();
+  updateMoveFields();
+  openModal('stock-move-modal');
+}
+
+function updateMoveFields() {
+  const type = document.getElementById('sm-type').value;
+  const fromGrp = document.getElementById('sm-from-group');
+  const toGrp = document.getElementById('sm-to-group');
+  if (type === 'in') { fromGrp.style.opacity = '.4'; toGrp.style.opacity = '1'; }
+  else if (type === 'out') { fromGrp.style.opacity = '1'; toGrp.style.opacity = '.4'; }
+  else { fromGrp.style.opacity = '1'; toGrp.style.opacity = '1'; }
+}
+
+async function saveStockMove() {
+  const productId = document.getElementById('sm-product').value;
+  const qty = parseFloat(document.getElementById('sm-qty').value);
+  if (!productId || !qty) { toast('Product and quantity are required', 'error'); return; }
+  const body = {
+    product_id: productId,
+    quantity: qty,
+    unit_cost: parseFloat(document.getElementById('sm-cost').value) || 0,
+    move_type: document.getElementById('sm-type').value,
+    from_location_id: document.getElementById('sm-from').value || null,
+    to_location_id: document.getElementById('sm-to').value || null,
+    reference: document.getElementById('sm-ref').value.trim() || null,
+    notes: document.getElementById('sm-notes').value.trim() || null,
+    state: 'done',
+  };
+  try {
+    await api('/inventory/stock-moves', { method: 'POST', body: JSON.stringify(body) });
+    toast('Stock move created', 'success');
+    closeModal('stock-move-modal');
+    await Promise.all([loadProducts(), loadMoves()]);
+    if (S.currentSection === 'overview') loadOverview();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// STOCK ADJUSTMENT
+// ════════════════════════════════════════════════════════════════════
+function openStockAdjModal() {
+  populateMoveProductSelect();
+  document.getElementById('adj-qty').value = '';
+  document.getElementById('adj-cost').value = '';
+  document.getElementById('adj-notes').value = '';
+  openModal('stock-adj-modal');
+}
+
+async function saveAdjustment() {
+  const productId = document.getElementById('adj-product').value;
+  const qty = parseFloat(document.getElementById('adj-qty').value);
+  if (!productId || isNaN(qty) || qty === 0) { toast('Product and non-zero quantity are required', 'error'); return; }
+  const reason = document.getElementById('adj-reason').value;
+  const body = {
+    product_id: productId,
+    quantity: Math.abs(qty),
+    unit_cost: parseFloat(document.getElementById('adj-cost').value) || 0,
+    move_type: 'adjustment',
+    from_location_id: qty < 0 ? null : null,
+    to_location_id: null,
+    reference: `ADJ-${Date.now()}`,
+    notes: reason + (document.getElementById('adj-notes').value ? ': ' + document.getElementById('adj-notes').value : ''),
+    state: 'done',
+  };
+  // Use negative quantity for out adjustment
+  if (qty < 0) body.move_type = 'adjustment';
+  try {
+    await api('/inventory/stock-moves', { method: 'POST', body: JSON.stringify(body) });
+    toast('Adjustment applied', 'success');
+    closeModal('stock-adj-modal');
+    await loadProducts();
+    if (S.currentSection === 'overview') loadOverview();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// TRANSFER
+// ════════════════════════════════════════════════════════════════════
+function openTransferModal() {
+  populateMoveProductSelect();
+  populateLocationSelects();
+  document.getElementById('tr-qty').value = '';
+  document.getElementById('tr-ref').value = '';
+  openModal('transfer-modal');
+}
+
+async function saveTransfer() {
+  const productId = document.getElementById('tr-product').value;
+  const qty = parseFloat(document.getElementById('tr-qty').value);
+  const from = document.getElementById('tr-from').value;
+  const to = document.getElementById('tr-to').value;
+  if (!productId || !qty) { toast('Product and quantity required', 'error'); return; }
+  if (!from || !to) { toast('Both locations required for transfer', 'error'); return; }
+  if (from === to) { toast('From and To locations must differ', 'error'); return; }
+  const body = { product_id: productId, quantity: qty, move_type: 'transfer', from_location_id: from, to_location_id: to, reference: document.getElementById('tr-ref').value.trim() || null, state: 'done', unit_cost: 0 };
+  try {
+    await api('/inventory/stock-moves', { method: 'POST', body: JSON.stringify(body) });
+    toast('Transfer created', 'success');
+    closeModal('transfer-modal');
+    await loadProducts();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// BATCHES
+// ════════════════════════════════════════════════════════════════════
+async function loadBatches() {
+  document.getElementById('batches-tbody').innerHTML = `<tr class="loading-row"><td colspan="6"><div class="spinner"></div></td></tr>`;
+  try {
+    const data = await api('/inventory/batches');
+    S.batches = data.data || data || [];
+    renderBatches();
+  } catch (e) {
+    document.getElementById('batches-tbody').innerHTML = `<tr class="loading-row"><td colspan="6" style="color:var(--red)">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function renderBatches() {
+  const tbody = document.getElementById('batches-tbody');
+  if (!S.batches.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><svg width="32" height="32" data-lucide="layers" style="opacity:.3"></svg><h3>No batches</h3><p>Create batch records for lot tracking</p></div></td></tr>`;
+    lucide.createIcons(); return;
+  }
+  const prodMap = Object.fromEntries(S.products.map(p => [p.id, prodName(p)]));
+  tbody.innerHTML = S.batches.map(b => {
+    const exp = b.expiry_date ? new Date(b.expiry_date) : null;
+    const now = new Date();
+    const isExpired = exp && exp < now;
+    const isNearExp = exp && !isExpired && (exp - now) < 30 * 86400000;
+    return `
+      <tr>
+        <td><span class="sku-tag">${esc(b.batch_number)}</span></td>
+        <td style="font-weight:600">${esc(prodMap[b.product_id] || b.product_id)}</td>
+        <td>${fmtQty(b.quantity || 0)}</td>
+        <td>
+          ${exp ? `<span class="badge ${isExpired?'badge-red':isNearExp?'badge-amber':'badge-green'}">${isExpired?'Expired':isNearExp?'Expiring Soon':exp.toLocaleDateString()}</span>` : '<span class="badge badge-gray">No expiry</span>'}
+        </td>
+        <td><span class="badge ${b.state==='active'?'badge-green':'badge-gray'}">${b.state||'active'}</span></td>
+        <td style="color:var(--text-secondary);font-size:12px">${esc(b.notes||'—')}</td>
+      </tr>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function openBatchModal() {
+  document.getElementById('batch-num').value = `BATCH-${Date.now()}`;
+  document.getElementById('batch-qty').value = '';
+  document.getElementById('batch-expiry').value = '';
+  document.getElementById('batch-notes').value = '';
+  populateMoveProductSelect();
+  openModal('batch-modal');
+}
+
+async function saveBatch() {
+  const num = document.getElementById('batch-num').value.trim();
+  const pid = document.getElementById('batch-product').value;
+  if (!num || !pid) { toast('Batch number and product required', 'error'); return; }
+  const body = {
+    batch_number: num,
+    product_id: pid,
+    quantity: parseFloat(document.getElementById('batch-qty').value) || 0,
+    expiry_date: document.getElementById('batch-expiry').value || null,
+    notes: document.getElementById('batch-notes').value.trim() || null,
+    state: 'active',
+  };
+  try {
+    await api('/inventory/batches', { method: 'POST', body: JSON.stringify(body) });
+    toast('Batch created', 'success');
+    closeModal('batch-modal');
+    await loadBatches();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// LOW STOCK ALERTS
+// ════════════════════════════════════════════════════════════════════
+async function loadAlerts() {
+  const el = document.getElementById('alerts-container');
+  el.innerHTML = `<div style="text-align:center;padding:40px"><div class="spinner"></div></div>`;
+  try {
+    const data = await api('/inventory/products/low-stock');
+    const items = data.data || [];
+    document.getElementById('low-stock-count-badge').textContent = items.length;
+    const badge = document.getElementById('alert-badge');
+    badge.textContent = items.length;
+    badge.style.display = items.length ? 'inline-block' : 'none';
+    if (!items.length) {
+      el.innerHTML = `
+        <div class="alert alert-success">
+          <svg width="16" height="16" data-lucide="check-circle" style="flex-shrink:0"></svg>
+          <span>All products are above their reorder points. No immediate action required.</span>
+        </div>`;
+      lucide.createIcons(); return;
+    }
+    const totalShortfall = items.reduce((s, p) => {
+      const onHand = p.qty_on_hand !== undefined ? p.qty_on_hand : (p.total_stock || 0);
+      return s + Math.max(0, (p.reorder_point || 0) - onHand);
+    }, 0);
+    el.innerHTML = `
+      <div class="alert alert-warning" style="margin-bottom:20px">
+        <svg width="16" height="16" data-lucide="alert-triangle" style="flex-shrink:0"></svg>
+        <span><strong>${items.length} product${items.length>1?'s':''}</strong> below reorder point. Total shortfall: <strong>${fmtQty(totalShortfall)}</strong> units.</span>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Product</th><th>Current Stock</th><th>Reorder Point</th><th>Shortfall</th><th>Est. Cost Needed</th><th>Urgency</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              ${items.map(p => {
+                const onHand = p.qty_on_hand !== undefined ? p.qty_on_hand : (p.total_stock || 0);
+                const reorder = p.reorder_point || 0;
+                const shortfall = Math.max(0, reorder - onHand);
+                const isCrit = onHand <= 0;
+                const costPrice = p.cost_price || p.unit_cost || 0;
+                const estCost = shortfall * costPrice;
+                const name = p.name_en || (typeof p.name === 'string' ? p.name : (p.name && p.name.en) || p.sku);
+                return `
+                  <tr>
+                    <td>
+                      <div style="font-weight:700">${esc(name)}</div>
+                      <div class="td-mono" style="font-size:11px">${esc(p.sku)}</div>
+                    </td>
+                    <td><span style="font-size:16px;font-weight:800;color:${isCrit?'var(--red)':'var(--amber)'}">${fmtQty(onHand)}</span></td>
+                    <td>${reorder}</td>
+                    <td><span style="color:var(--red);font-weight:700">${shortfall}</span></td>
+                    <td>${costPrice > 0 ? '$' + fmtNum(estCost) : '—'}</td>
+                    <td><span class="badge ${isCrit?'badge-red':'badge-amber'}">${isCrit?'Critical':'Low'}</span></td>
+                    <td>
+                      <button class="btn btn-secondary btn-sm" onclick="openStockMoveModal()"><svg width="12" height="12" data-lucide="plus-circle"></svg> Restock</button>
+                    </td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    lucide.createIcons();
+  } catch (e) { el.innerHTML = `<div class="alert alert-danger"><span>Error: ${e.message}</span></div>`; }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// VALUATION
+// ════════════════════════════════════════════════════════════════════
+async function loadValuation() {
+  document.getElementById('val-tbody').innerHTML = `<tr class="loading-row"><td colspan="6"><div class="spinner"></div></td></tr>`;
+  document.getElementById('val-stats').innerHTML = '';
+  try {
+    const data = await api('/inventory/products?page_size=200');
+    const prods = (data.data || []).filter(p => prodQty(p) > 0);
+    prods.sort((a,b) => (prodQty(b)*b.cost_price) - (prodQty(a)*a.cost_price));
+    const totalValue = prods.reduce((s,p) => s+(prodQty(p)*p.cost_price), 0);
+    const totalQty = prods.reduce((s,p) => s+prodQty(p), 0);
+    const totalSaleValue = prods.reduce((s,p) => s+(prodQty(p)*(p.sale_price||p.base_price||0)), 0);
+    const margin = totalSaleValue > 0 ? ((totalSaleValue - totalValue) / totalSaleValue * 100).toFixed(1) : 0;
+    document.getElementById('val-stats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-card-header"><div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" data-lucide="dollar-sign" style="color:var(--green)"></svg></div></div>
+        <div class="stat-value">$${fmtNum(totalValue)}</div>
+        <div class="stat-label">Total Cost Value</div>
+        <div class="stat-sub">across ${prods.length} products</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header"><div class="stat-icon" style="background:var(--accent-dim)"><svg width="18" height="18" data-lucide="trending-up" style="color:var(--accent)"></svg></div></div>
+        <div class="stat-value">$${fmtNum(totalSaleValue)}</div>
+        <div class="stat-label">Potential Sale Value</div>
+        <div class="stat-sub">at current sale prices</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header"><div class="stat-icon" style="background:var(--cyan-dim)"><svg width="18" height="18" data-lucide="percent" style="color:var(--cyan)"></svg></div></div>
+        <div class="stat-value">${margin}%</div>
+        <div class="stat-label">Gross Margin</div>
+        <div class="stat-sub">${fmtQty(totalQty)} total units</div>
+      </div>`;
+    document.getElementById('val-tbody').innerHTML = prods.map(p => {
+      const val = prodQty(p) * p.cost_price;
+      const pct = totalValue > 0 ? ((val / totalValue) * 100).toFixed(1) : 0;
+      const barW = Math.min(100, parseFloat(pct));
+      return `
+        <tr>
+          <td><span style="font-weight:700">${esc(prodName(p))}</span></td>
+          <td><span class="sku-tag">${esc(p.sku)}</span></td>
+          <td style="font-weight:700;font-size:15px">${fmtQty(prodQty(p))}</td>
+          <td>$${fmtNum(p.cost_price)}</td>
+          <td style="font-weight:700;color:var(--green)">$${fmtNum(val)}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="progress progress-green" style="flex:1;max-width:80px"><div class="progress-bar" style="width:${barW}%"></div></div>
+              <span style="font-size:12px;font-weight:600;color:var(--text-secondary);flex-shrink:0">${pct}%</span>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+    lucide.createIcons();
+  } catch (e) { document.getElementById('val-tbody').innerHTML = `<tr class="loading-row"><td colspan="6" style="color:var(--red)">Error: ${e.message}</td></tr>`; }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ════════════════════════════════════════════════════════════════════
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function fmtNum(n) {
+  if (n === null || n === undefined || isNaN(n)) return '0.00';
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+  return parseFloat(n).toFixed(2);
+}
+
+function fmtQty(n) {
+  if (n === null || n === undefined) return '0';
+  const v = parseFloat(n);
+  return v % 1 === 0 ? v.toFixed(0) : v.toFixed(2);
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  try {
+    const d = new Date(s);
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  } catch { return s; }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// INIT LUCIDE ON LOAD
+// ════════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>
