@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -70,6 +71,7 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	claims.Post("/", h.CreateClaim)
 	claims.Get("/", h.ListClaims)
 	claims.Get("/stats", h.GetStats)
+	claims.Get("/export", h.ExportClaims) // CSV export — must come before /:id
 	claims.Get("/:id", h.GetClaim)
 	claims.Post("/:id/document", h.UploadDocument)
 	claims.Post("/:id/review", h.ReviewClaim)  // NEW-I fix: frontend POSTs to /:id/review
@@ -369,6 +371,104 @@ func (h *Handler) GetStats(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(successResponse{Data: stats})
+}
+
+// ExportClaims godoc
+// @Summary  Export claims as CSV
+// @Tags     claims
+// @Produce  text/csv
+// @Param    status     query string false "Filter by status"
+// @Param    claim_type query string false "Filter by claim type"
+// @Param    date_from  query string false "Start date (YYYY-MM-DD)"
+// @Param    date_to    query string false "End date (YYYY-MM-DD)"
+// @Success  200 {string} string "CSV file"
+// @Router   /claims/export [get]
+func (h *Handler) ExportClaims(c *fiber.Ctx) error {
+	companyID := middleware.CompanyIDFromContext(c.UserContext())
+	if companyID == "" {
+		return respondError(c, http.StatusUnauthorized, "missing company identity", nil)
+	}
+
+	// Re-use the list filter but with a large page size to fetch all matching claims.
+	filter := domain.ListFilter{
+		CompanyID: companyID,
+		Status:    domain.ClaimStatus(c.Query("status")),
+		ClaimType: domain.ClaimType(c.Query("claim_type")),
+		Page:      1,
+		PageSize:  10000, // export cap
+		SortBy:    "created_at",
+		SortOrder: "desc",
+	}
+	if v, err := strconv.ParseFloat(c.Query("min_amount"), 64); err == nil {
+		filter.MinAmount = v
+	}
+	if v, err := strconv.ParseFloat(c.Query("max_amount"), 64); err == nil {
+		filter.MaxAmount = v
+	}
+	if v := c.Query("date_from"); v != "" {
+		if t, err := time.Parse("2006-01-02", v); err == nil {
+			filter.DateFrom = &t
+		}
+	}
+	if v := c.Query("date_to"); v != "" {
+		if t, err := time.Parse("2006-01-02", v); err == nil {
+			filter.DateTo = &t
+		}
+	}
+
+	result, err := h.svc.ListClaims(c.Context(), filter)
+	if err != nil {
+		h.logger.Error("export claims failed", zap.Error(err))
+		return respondError(c, http.StatusInternalServerError, "failed to export claims", nil)
+	}
+
+	// Build CSV in memory.
+	var buf bytes.Buffer
+	buf.WriteString("id,policy_number,claim_type,status,amount,fraud_score,risk_level,incident_date,created_at,reviewed_by,analyst_notes\n")
+	for _, cl := range result.Claims {
+		incidentDate := ""
+		if cl.IncidentDate != nil {
+			incidentDate = cl.IncidentDate.Format("2006-01-02")
+		}
+		row := []string{
+			cl.ID,
+			cl.PolicyNumber,
+			string(cl.ClaimType),
+			string(cl.Status),
+			strconv.FormatFloat(cl.Amount, 'f', 2, 64),
+			strconv.FormatFloat(cl.FraudScore, 'f', 4, 64),
+			"", // risk_level not in domain.Claim yet — placeholder
+			incidentDate,
+			cl.CreatedAt.Format(time.RFC3339),
+			cl.AnalystID,
+			csvEscape(cl.AnalystNotes),
+		}
+		buf.WriteString(csvRow(row) + "\n")
+	}
+
+	filename := "goshield-claims-" + time.Now().Format("2006-01-02") + ".csv"
+	c.Set("Content-Type", "text/csv; charset=utf-8")
+	c.Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	return c.Status(http.StatusOK).Send(buf.Bytes())
+}
+
+// csvEscape wraps a field in double-quotes if it contains commas, quotes, or newlines.
+func csvEscape(s string) string {
+	for _, ch := range s {
+		if ch == ',' || ch == '"' || ch == '\n' || ch == '\r' {
+			return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
+		}
+	}
+	return s
+}
+
+// csvRow joins fields with commas, escaping each field.
+func csvRow(fields []string) string {
+	escaped := make([]string, len(fields))
+	for i, f := range fields {
+		escaped[i] = csvEscape(f)
+	}
+	return strings.Join(escaped, ",")
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
