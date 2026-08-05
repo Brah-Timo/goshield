@@ -3,18 +3,22 @@ import { useAuthStore } from '@/store/auth'
 import { useLogout } from '@/hooks/useAuth'
 import {
   Shield, LayoutDashboard, FileText, Upload, Settings, LogOut,
-  Menu, X, Sun, Moon, ChevronRight, Bell, BarChart2, Wifi, WifiOff,
+  Menu, X, Sun, Moon, ChevronRight, BarChart2, Wifi, WifiOff,
+  Search, UserCircle,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import { useToastStore } from '@/store/toast'
 import { wsClient } from '@/lib/ws'
+import NotificationCenter from '@/components/notifications/NotificationCenter'
 
 const nav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/claims',    label: 'Claims',    icon: FileText },
+  { to: '/search',    label: 'Search',    icon: Search },
   { to: '/analytics', label: 'Analytics', icon: BarChart2 },
   { to: '/upload',    label: 'New Claim', icon: Upload },
+  { to: '/profile',   label: 'Profile',   icon: UserCircle },
   { to: '/settings',  label: 'Settings',  icon: Settings },
 ]
 
@@ -41,6 +45,8 @@ function useBreadcrumbs() {
       part === 'claims'    ? 'Claims' :
       part === 'upload'    ? 'New Claim' :
       part === 'settings'  ? 'Settings' :
+      part === 'search'    ? 'Search' :
+      part === 'profile'   ? 'Profile' :
       part.length === 36   ? `Claim ${part.slice(0, 8)}…` : part
     crumbs.push({ label, to: accumulated })
   }
@@ -71,6 +77,12 @@ function useDarkMode() {
 }
 
 // ── Toast component ────────────────────────────────────────────────────────
+const TOAST_ICONS = {
+  success: '✓',
+  error:   '✕',
+  info:    'ℹ',
+  warning: '⚠',
+}
 export function ToastContainer() {
   const { toasts, dismiss } = useToastStore()
   return (
@@ -86,7 +98,7 @@ export function ToastContainer() {
             t.type === 'warning' && 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-200',
           )}
         >
-          <Bell className="h-4 w-4 mt-0.5 shrink-0" />
+          <span className="mt-0.5 shrink-0 font-bold text-base leading-none">{TOAST_ICONS[t.type]}</span>
           <div className="flex-1 min-w-0">
             {t.title && <p className="font-semibold">{t.title}</p>}
             <p className="text-xs opacity-90">{t.message}</p>
@@ -112,6 +124,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   // Close sidebar on route change
   useEffect(() => { setOpen(false) }, [location.pathname])
+
+  // Global keyboard shortcut: Ctrl+K → search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        navigate('/search')
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [navigate])
 
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`
 
@@ -245,6 +269,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 : <><WifiOff className="h-3 w-3" />Offline</>
               }
             </div>
+            {/* Notification center */}
+            <NotificationCenter />
             {/* Dark mode toggle */}
             <button
               onClick={toggleDark}
@@ -253,15 +279,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            {/* Avatar chip */}
-            <div className="hidden sm:flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 pl-1.5 pr-3 py-1">
+            {/* Avatar chip (links to profile) */}
+            <Link
+              to="/profile"
+              className="hidden sm:flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 pl-1.5 pr-3 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title="My Profile"
+            >
               <div className="h-6 w-6 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-xs font-bold text-white">
                 {initials}
               </div>
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 {user?.firstName}
               </span>
-            </div>
+            </Link>
           </div>
         </header>
 

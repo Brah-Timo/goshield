@@ -4,12 +4,16 @@ import { wsClient } from '@/lib/ws'
 import { claimKeys } from './useClaims'
 import type { WSMessage } from '@/types'
 import { toast } from '@/store/toast'
+import { useNotifStore } from '@/store/notifications'
 
 export function useWebSocketUpdates() {
   const qc = useQueryClient()
+  const notifStore = useNotifStore()
 
   const handleMessage = useCallback(
     (msg: WSMessage) => {
+      // Feed notification store (persisted panel)
+      notifStore.fromWSMessage(msg)
       // Backend sends { type, payload: { claim_id, ... } } — use payload.claim_id
       const claimId = msg.payload?.claim_id
       if (!claimId) return
@@ -74,7 +78,7 @@ export function useWebSocketUpdates() {
           break
       }
     },
-    [qc]
+    [qc, notifStore]
   )
 
   useEffect(() => {

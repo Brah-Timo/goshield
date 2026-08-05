@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { useClaimList, useDeleteClaim } from '@/hooks/useClaims'
+import { useClaimList, useDeleteClaim, useExportClaims } from '@/hooks/useClaims'
 import {
   useReactTable, getCoreRowModel, createColumnHelper,
   flexRender, SortingState, getSortedRowModel,
@@ -10,7 +10,7 @@ import { format, parseISO } from 'date-fns'
 import {
   ChevronLeft, ChevronRight, Search, Download, Filter,
   ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, AlertTriangle,
-  CheckSquare, Square,
+  CheckSquare, Square, FileJson, ExternalLink,
 } from 'lucide-react'
 import { toast } from '@/store/toast'
 
@@ -246,9 +246,22 @@ export default function ClaimsPage() {
   const [search,        setSearch]        = useState('')
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
   const [deleteTarget,  setDeleteTarget]  = useState<string[] | null>(null) // null = dialog closed
+  const [exportFmt,     setExportFmt]     = useState<'csv' | 'json' | null>(null)
 
   const { data, isLoading } = useClaimList(filter)
   const deleteMutation       = useDeleteClaim()
+  const exportMutation       = useExportClaims()
+
+  const handleExport = (fmt: 'csv' | 'json') => {
+    setExportFmt(fmt)
+    exportMutation.mutate(
+      { format: fmt, status: filter.status, claimType: filter.claimType },
+      {
+        onSuccess: () => { toast.success(`Claims exported as ${fmt.toUpperCase()}`, 'Export'); setExportFmt(null) },
+        onError:   () => { toast.error('Export failed', 'Error'); setExportFmt(null) },
+      }
+    )
+  }
 
   // Client-side search
   const allClaims = data?.claims ?? []
@@ -374,15 +387,41 @@ export default function ClaimsPage() {
               Delete ({selectedIds.size})
             </button>
           )}
+          {/* Export CSV */}
           <button
-            onClick={() => exportCSV(displayed)}
-            disabled={displayed.length === 0}
+            onClick={() => handleExport('csv')}
+            disabled={exportMutation.isPending || displayed.length === 0}
             title="Export to CSV"
             className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition-colors"
           >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export CSV</span>
+            {exportFmt === 'csv' && exportMutation.isPending
+              ? <span className="h-4 w-4 border-2 border-gray-400 border-t-brand-600 rounded-full animate-spin" />
+              : <Download className="h-4 w-4" />
+            }
+            <span className="hidden sm:inline">CSV</span>
           </button>
+          {/* Export JSON */}
+          <button
+            onClick={() => handleExport('json')}
+            disabled={exportMutation.isPending || displayed.length === 0}
+            title="Export to JSON"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition-colors"
+          >
+            {exportFmt === 'json' && exportMutation.isPending
+              ? <span className="h-4 w-4 border-2 border-gray-400 border-t-brand-600 rounded-full animate-spin" />
+              : <FileJson className="h-4 w-4" />
+            }
+            <span className="hidden sm:inline">JSON</span>
+          </button>
+          {/* Advanced search */}
+          <Link
+            to="/search"
+            title="Advanced Search"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            <span className="hidden sm:inline">Search</span>
+          </Link>
           <Link
             to="/upload"
             className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"

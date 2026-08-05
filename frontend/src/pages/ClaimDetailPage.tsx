@@ -1,12 +1,13 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useClaim, useReviewClaim } from '@/hooks/useClaims'
 import { format, parseISO } from 'date-fns'
 import {
   AlertTriangle, CheckCircle, XCircle, FileText, Brain,
   Clock, ChevronRight, ArrowLeft, Info, Copy, ExternalLink,
+  Printer, Download, Share2,
 } from 'lucide-react'
-import { useState } from 'react'
-import type { RiskFactor, ClaimStatus } from '@/types'
+import { useState, useEffect } from 'react'
+import type { RiskFactor, ClaimStatus, Claim } from '@/types'
 import { toast } from '@/store/toast'
 
 // ── SHAP bar ──────────────────────────────────────────────────────────────
@@ -128,12 +129,74 @@ function riskStyle(level?: string) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// ── Export claim as JSON report ────────────────────────────────────────────
+function exportClaimReport(claim: Claim) {
+  const report = {
+    exportedAt: new Date().toISOString(),
+    claim: {
+      id:           claim.id,
+      policyNumber: claim.policyNumber,
+      claimType:    claim.claimType,
+      status:       claim.status,
+      amount:       claim.amount,
+      description:  claim.description,
+      incidentDate: claim.incidentDate,
+      createdAt:    claim.createdAt,
+      updatedAt:    claim.updatedAt,
+    },
+    aiAnalysis: {
+      fraudScore:   claim.fraudScore,
+      riskLevel:    claim.riskLevel,
+      fraudReason:  claim.fraudReason,
+      confidence:   claim.confidence,
+      modelVersion: claim.modelVersion,
+      shapValues:   claim.shapValues,
+    },
+    review: {
+      reviewedBy:   claim.reviewedBy,
+      reviewedAt:   claim.reviewedAt,
+      reviewNotes:  claim.reviewNotes,
+    },
+  }
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `goshield-claim-${claim.id.slice(0, 8)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ── Share claim link ────────────────────────────────────────────────────────
+function shareClaimLink(claimId: string) {
+  const url = `${window.location.origin}/claims/${claimId}`
+  if (navigator.share) {
+    navigator.share({ title: 'GoShield Claim', url }).catch(() => {})
+  } else {
+    navigator.clipboard.writeText(url)
+  }
+}
+
 export default function ClaimDetailPage() {
   const { id }              = useParams<{ id: string }>()
   const { data: claim, isLoading } = useClaim(id!)
   const review              = useReviewClaim()
+  const navigate            = useNavigate()
   const [notes, setNotes]   = useState('')
   const [copied, setCopied] = useState(false)
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') navigate(-1)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p' && claim) {
+        e.preventDefault()
+        window.print()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [navigate, claim])
 
   if (isLoading) {
     return (
@@ -212,7 +275,7 @@ export default function ClaimDetailPage() {
               {format(parseISO(claim.createdAt), 'MMMM d, yyyy HH:mm')}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {claim.riskLevel && (
               <span className={`rounded-full px-4 py-1.5 text-sm font-semibold border ${rs.bg} ${rs.text} ${rs.border}`}>
                 {claim.riskLevel} RISK
@@ -221,6 +284,36 @@ export default function ClaimDetailPage() {
             <span className="rounded-full px-3 py-1.5 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
               {claim.status}
             </span>
+            {/* ── Action buttons ── */}
+            <div className="flex items-center gap-1 ml-1">
+              <button
+                onClick={() => window.print()}
+                title="Print claim (Ctrl+P)"
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 transition-colors"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Print</span>
+              </button>
+              <button
+                onClick={() => exportClaimReport(claim)}
+                title="Download JSON report"
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 transition-colors"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+              <button
+                onClick={() => {
+                  shareClaimLink(claim.id)
+                  toast.success('Link copied to clipboard', 'Share')
+                }}
+                title="Share claim link"
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 transition-colors"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Share</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

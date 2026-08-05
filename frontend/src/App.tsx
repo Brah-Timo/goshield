@@ -10,6 +10,8 @@ import ClaimDetailPage from '@/pages/ClaimDetailPage'
 import UploadPage      from '@/pages/UploadPage'
 import SettingsPage    from '@/pages/SettingsPage'
 import AnalyticsPage   from '@/pages/AnalyticsPage'
+import SearchPage      from '@/pages/SearchPage'
+import ProfilePage     from '@/pages/ProfilePage'
 import NotFoundPage    from '@/pages/NotFoundPage'
 import Layout          from '@/components/layout/Layout'
 
@@ -29,6 +31,8 @@ function AuthenticatedApp() {
         <Route path="/claims/:id" element={<ClaimDetailPage />} />
         <Route path="/upload"     element={<UploadPage />} />
         <Route path="/analytics"  element={<AnalyticsPage />} />
+        <Route path="/search"     element={<SearchPage />} />
+        <Route path="/profile"    element={<ProfilePage />} />
         <Route path="/settings"   element={<SettingsPage />} />
         <Route path="/404"        element={<NotFoundPage />} />
         <Route path="/"           element={<Navigate to="/dashboard" replace />} />

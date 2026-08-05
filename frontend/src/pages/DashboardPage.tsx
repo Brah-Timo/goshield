@@ -1,15 +1,17 @@
 import { useClaimList, useClaimStats } from '@/hooks/useClaims'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, BarChart, Bar,
+  PieChart, Pie, Cell, BarChart, Bar,
 } from 'recharts'
 import {
   AlertTriangle, CheckCircle, Clock, TrendingUp, TrendingDown,
-  DollarSign, Shield, FileText, Activity,
+  DollarSign, Shield, FileText, Activity, Upload, BarChart2,
+  Zap, RefreshCw,
 } from 'lucide-react'
-import { format, subDays, parseISO } from 'date-fns'
+import { format, subDays, parseISO, formatDistanceToNow } from 'date-fns'
 import { Link } from 'react-router-dom'
 import type { DashboardStats, Claim, ClaimStatus, RiskLevel } from '@/types'
+import { useNotifStore } from '@/store/notifications'
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const RISK_COLORS: Record<RiskLevel, string>   = {
@@ -133,11 +135,40 @@ function ChartTooltip({ active, payload, label }: {
   )
 }
 
+// ── Quick action card ──────────────────────────────────────────────────────
+function QuickAction({ to, icon: Icon, label, sub, color }: {
+  to: string; icon: React.ElementType; label: string; sub: string; color: string
+}) {
+  return (
+    <Link
+      to={to}
+      className="group flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 hover:shadow-md hover:border-brand-300 dark:hover:border-brand-600 transition-all duration-200"
+    >
+      <div className={`rounded-xl p-2.5 ${color} shrink-0 group-hover:scale-105 transition-transform`}>
+        <Icon className="h-5 w-5 text-white" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{label}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+      </div>
+    </Link>
+  )
+}
+
+// ── Severity dot ───────────────────────────────────────────────────────────
+const SEVERITY_DOT: Record<string, string> = {
+  info:    'bg-brand-500',
+  warning: 'bg-amber-500',
+  error:   'bg-red-500',
+  success: 'bg-green-500',
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 export default function DashboardPage() {
   const statsQuery  = useClaimStats()
   const recentQuery = useClaimList({ pageSize: 100, sortBy: 'created_at', sortOrder: 'desc' })
   const top5Query   = useClaimList({ pageSize: 5,   sortBy: 'created_at', sortOrder: 'desc' })
+  const notifications = useNotifStore(s => s.items)
 
   const s      = statsQuery.data as DashboardStats | undefined
   const claims = recentQuery.data?.claims ?? []
@@ -173,6 +204,14 @@ export default function DashboardPage() {
           <FileText className="h-4 w-4" />
           New Claim
         </Link>
+      </div>
+
+      {/* ── Quick actions ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <QuickAction to="/upload"    icon={Upload}    label="New Claim"   sub="Submit for analysis"    color="bg-brand-600" />
+        <QuickAction to="/claims"    icon={FileText}  label="All Claims"  sub="Browse & filter"        color="bg-slate-600" />
+        <QuickAction to="/analytics" icon={BarChart2} label="Analytics"   sub="Deep-dive insights"     color="bg-purple-600" />
+        <QuickAction to="/settings"  icon={Zap}       label="Quick Setup" sub="Notifications & profile" color="bg-amber-500" />
       </div>
 
       {/* KPI cards */}
@@ -305,8 +344,52 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent claims table */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* ── Activity feed + Recent claims side-by-side on large screens ── */}
+      <div className="grid lg:grid-cols-3 gap-6">
+
+        {/* Activity feed (1/3 width) */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-gray-400" />
+              <h2 className="font-semibold text-gray-900 dark:text-white text-sm">Live Activity</h2>
+            </div>
+            {notifications.length > 0 && (
+              <span className="rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 text-[10px] font-bold px-1.5 py-0.5">
+                {notifications.length}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto max-h-72">
+            {notifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-2">
+                <RefreshCw className="h-8 w-8 text-gray-200 dark:text-gray-700" />
+                <p className="text-xs text-gray-400">No activity yet</p>
+                <p className="text-xs text-gray-300 dark:text-gray-600 text-center px-4">
+                  Real-time events will appear here as claims are processed
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50 dark:divide-gray-800">
+                {notifications.slice(0, 10).map(n => (
+                  <div key={n.id} className="flex items-start gap-3 px-4 py-3">
+                    <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${SEVERITY_DOT[n.severity] ?? 'bg-gray-400'}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{n.title}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed line-clamp-2">{n.body}</p>
+                      <p className="text-[10px] text-gray-300 dark:text-gray-600 mt-0.5">
+                        {formatDistanceToNow(n.ts, { addSuffix: true })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent claims table (2/3 width) */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 dark:text-white">Recent Claims</h2>
           <Link to="/claims" className="text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium">
@@ -369,6 +452,8 @@ export default function DashboardPage() {
             </tbody>
           </table>
         )}
+        </div>
+
       </div>
     </div>
   )

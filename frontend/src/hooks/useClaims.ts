@@ -120,3 +120,66 @@ export function useDailyStats(days = 30) {
     },
   })
 }
+
+// ── Export Claims ─────────────────────────────────────────────────────────────
+export function useExportClaims() {
+  return useMutation({
+    mutationFn: async (params: {
+      format: 'csv' | 'json'
+      status?: string
+      claimType?: string
+      dateFrom?: string
+      dateTo?: string
+    }) => {
+      if (params.format === 'csv') {
+        // Stream CSV from backend export endpoint
+        const qp = new URLSearchParams()
+        if (params.status)    qp.set('status',     params.status)
+        if (params.claimType) qp.set('claim_type', params.claimType)
+        if (params.dateFrom)  qp.set('date_from',  params.dateFrom)
+        if (params.dateTo)    qp.set('date_to',    params.dateTo)
+
+        const { data: token } = await api.get<never>('/noop') // warm token
+        const token_ = (await import('@/lib/api')).getAccessToken()
+        const res = await fetch(
+          `${(await import('@/lib/api')).api.defaults.baseURL}/claims/v1/claims/export?${qp}`,
+          { headers: { Authorization: `Bearer ${token_}` } }
+        )
+        if (!res.ok) throw new Error('Export failed')
+        const blob = await res.blob()
+        const url  = URL.createObjectURL(blob)
+        const a    = document.createElement('a')
+        a.href     = url
+        a.download = `goshield-claims-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+        return 'csv'
+      } else {
+        // JSON export — client-side from current page
+        const qp = new URLSearchParams()
+        if (params.status)    qp.set('status',     params.status)
+        if (params.claimType) qp.set('claim_type', params.claimType)
+        if (params.dateFrom)  qp.set('date_from',  params.dateFrom)
+        if (params.dateTo)    qp.set('date_to',    params.dateTo)
+        qp.set('page_size', '10000')
+
+        const { data } = await api.get<import('@/types').ClaimListResponse>(
+          `/claims/v1/claims?${qp}`
+        )
+        const report = {
+          exportedAt: new Date().toISOString(),
+          total: data.total,
+          claims: data.claims,
+        }
+        const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })
+        const url  = URL.createObjectURL(blob)
+        const a    = document.createElement('a')
+        a.href     = url
+        a.download = `goshield-claims-${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+        return 'json'
+      }
+    },
+  })
+}
